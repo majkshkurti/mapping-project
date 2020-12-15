@@ -8,21 +8,8 @@
       <full-screen />
       <share-map :map="map"></share-map>
       <locate :map="map" />
-      <route-controls />
     </div>
 
-    <!-- Edit Controls (Only available for logged users ) -->
-    <div v-if="loggedUser" style="position:absolute;right:20px;top:10px;">
-      <edit :map="map" />
-    </div>
-
-    <div
-      v-show="spotlightMessage === true"
-      class="elevation-4 regular spotlight-message"
-      ref="spotlightControls"
-    >
-      press ↑ or ↓ to change spotlight size
-    </div>
     <!-- Popup overlay  -->
     <overlay-popup
       :title="
@@ -74,36 +61,11 @@
             href="javascript:void(0)"
             @click="zoomToFeature()"
           >
-            <strong>{{
-              popup.activeFeature.getGeometry().getType() === 'Point'
-                ? 'DIVE'
-                : 'VIEW WHOLE FEATURE'
-            }}</strong>
-          </a>
-          <a
-            v-show="popup.activeLayer.get('includeInSearch') !== false"
-            v-if="
-              (popup.activeFeature.get('entity') &&
-                !selectedCoorpNetworkEntity) ||
-                (selectedCoorpNetworkEntity &&
-                  popup.activeFeature.get('entity') &&
-                  splittedEntities &&
-                  !splittedEntities.some(substring =>
-                    popup.activeFeature.get('entity').includes(substring)
-                  ))
-            "
-            @click="queryCorporateNetwork"
-            href="javascript:void(0)"
-            class="ml-2"
-          >
-            <strong>{{ searchLabel }}</strong>
           </a>
         </div>
       </template>
     </overlay-popup>
 
-    <!-- Lightbox overlay -->
-    <app-lightbox ref="lightbox" :images="lightBoxImages"></app-lightbox>
     <!-- Progress loader -->
     <progress-loader
       :value="progressLoading.value"
@@ -162,7 +124,6 @@ import OverlayPopup from './controls/Overlay';
 import ZoomControl from './controls/ZoomControl';
 import FullScreen from './controls/FullScreen';
 import Locate from './controls/Locate';
-import RouteControls from './controls/RouteControls';
 import Legend from './controls/Legend';
 import Login from './controls/Login';
 import Edit from './controls/Edit';
@@ -200,8 +161,6 @@ export default {
     'login-button': Login,
     'zoom-control': ZoomControl,
     'full-screen': FullScreen,
-    'route-controls': RouteControls,
-    'app-lightbox': AppLightBox,
     'share-map': ShareMap,
     locate: Locate,
     'progress-loader': ProgressLoader,
@@ -217,9 +176,7 @@ export default {
       maxZoom: this.$appConfig.map.maxZoom,
       extent: this.$appConfig.map.extent,
       color: this.$appConfig.controlsColor,
-      allLayers: [],
-      queryableLayers: [],
-      queryLayersGeoserverNames: null,
+  
       activeInteractions: [],
       getInfoResult: [],
       radius: 300,
@@ -227,7 +184,6 @@ export default {
       spotlightMessage: false,
       lightBoxImages: [],
       progressLoading: {
-        message: 'Fetching Corporate Network',
         progressColor: '#dc143c',
         value: false
       },
@@ -268,9 +224,6 @@ export default {
     EventBus.$on('noMapReset', () => {
       this.noMapReset = true;
     });
-    EventBus.$on('diveToFeatureEnd', () => {
-      this.updateMousePosition();
-    });
 
     // resize the map, so it fits to parent
     window.setTimeout(() => {
@@ -285,18 +238,8 @@ export default {
       // Map Hover out event
       me.setupMapHoverOut();
       // Move end event
-      this.setupMapMoveEnd();
       // Create popup overlay for get info
       me.createPopupOverlay();
-      // Fetch gas pipes entities for styling
-      me.fetchColorMapEntities();
-      // Remove layers with no entity property as it will
-      // not work with Corporate Networks. (A describe fetaure type )
-      // for every layer is needed.
-      me.fetchDescribeFeatureTypes();
-      if (this.activeLayerGroup.region === 'local') {
-        EventBus.$emit('zoomToLocation');
-      }
     }, 200);
   },
   created() {
@@ -322,25 +265,15 @@ export default {
       view: new View({
         center: me.center || [0, 0],
         minResolution: 0.5,
-        maxResolution: 64000
+        maxResolution: 64000,
+        projection: 'EPSG:54030'
       })
     });
     //Add map to the vuex store.
     me.setMap(me.map);
     // Create layers from config and add them to map
     me.createLayers();
-    me.createHtmlPostLayer();
 
-    // Event bus setup for managing interactions
-    EventBus.$on('ol-interaction-activated', startedInteraction => {
-      me.activeInteractions.push(startedInteraction);
-    });
-    EventBus.$on('ol-interaction-stoped', stopedInteraction => {
-      me.activeInteractions = Array.from(new Set(me.activeInteractions));
-      me.activeInteractions = me.activeInteractions.filter(interaction => {
-        return interaction !== stopedInteraction;
-      });
-    });
   },
 
   methods: {
@@ -352,45 +285,11 @@ export default {
       const me = this;
       // Get Info layer
       me.createGetInfoLayer();
-      const activeLayerGroup = this.activeLayerGroup;
-      const visibleGroup = this.$appConfig.map.groups[
-        activeLayerGroup.fuelGroup
-      ][activeLayerGroup.region];
-      const visibleLayers = visibleGroup.layers;
-      me.resetMap();
-      // World Overlay Layer and selected features layer for corporate network
-      me.createWorldExtentOverlayLayer();
-      me.createSelectedCorpNetworkLayer();
 
       this.$appConfig.map.layers.forEach(lConf => {
-        const layerIndex = visibleLayers.indexOf(lConf.name);
-        if (layerIndex === -1) return;
         const layer = LayerFactory.getInstance(lConf);
-        layer.setZIndex(layerIndex);
-        // Restore the previous layer visibility state if exists.
-        if (layer.get('name') in this.layerVisibilityState) {
-          layer.setVisible(this.layerVisibilityState[layer.get('name')]);
-        }
-        // Enable spotlight for ESRI Imagery
-        if (
-          layer.get('name') === 'ESRI-World-Imagery' ||
-          layer.get('name') === 'us_imagery'
-        ) {
-          layer.on('prerender', e => {
-            this.spotlight(e);
-          });
-          layer.on('postrender', function(e) {
-            e.context.restore();
-          });
-        }
-        if (layer.get('name')) {
-          me.setLayer(layer);
-        }
+        layer.setZIndex(layerIndex);        
       });
-    },
-    createHtmlPostLayer() {
-      const layer = LayerFactory.getInstance(this.htmlPostLayerConf);
-      this.setPersistentLayer(layer);
     },
     /**
      * Creates a layer to visualize selected GetInfo features.
@@ -410,68 +309,7 @@ export default {
       this.map.addLayer(vector);
     },
 
-    /**
-     * Creates a layer to visualize selected GetInfo features.
-     */
-    createWorldExtentOverlayLayer() {
-      // For Vector selection
-      const source = new VectorSource({
-        wrapX: true
-      });
-      const vector = new VectorLayer({
-        name: 'World Extent Layer',
-        isInteractive: false,
-        queryable: false,
-        zIndex: 2000,
-        source: source,
-        style: worldOverlayFill()
-      });
-      this.popup.worldExtentLayer = vector;
-      this.map.addLayer(vector);
-    },
-
-    /**
-     * Create a layer to visualize selected corporate network features.
-     */
-    createSelectedCorpNetworkLayer() {
-      // For Vector selection
-      const source = new VectorSource({
-        wrapX: true
-      });
-      const vector = new VectorLayer({
-        name: 'Corporate Selected Network Layer',
-        zIndex: 2500,
-        hoverable: true,
-        source: source,
-        style: networkCorpHighlightStyle()
-      });
-      this.popup.selectedCorpNetworkLayer = vector;
-      this.map.addLayer(vector);
-    },
-
-    /**
-     * Create Vector Tile Highligh layer.
-     */
-
-    createVTHighlightLayer(source) {
-      // For Vector tiles selection.
-      var vectorTileLayer = new VectorTileLayer({
-        renderMode: 'vector',
-        source: source,
-        zIndex: 100,
-        hoverable: true,
-        style: feature => {
-          if (
-            this.popup.activeFeature &&
-            this.popup.activeFeature.getId() === feature.getId()
-          ) {
-            return popupInfoStyle()(feature);
-          }
-        }
-      });
-      this.popup.highlightVectorTileLayer = vectorTileLayer;
-      this.map.addLayer(this.popup.highlightVectorTileLayer);
-    },
+    
 
     /**
      * Sets the background color of the OL buttons to the color property.
@@ -549,14 +387,7 @@ export default {
       if (me.popup.highlightLayer) {
         this.popup.highlightLayer.getSource().clear();
       }
-      if (me.popup.highlightVectorTileLayer) {
-        me.map.removeLayer(me.popup.highlightVectorTileLayer);
-      }
 
-      if (!this.selectedCoorpNetworkEntity) {
-        me.popup.activeFeature = null;
-        me.popup.activeLayer = null;
-      }
       me.popup.showInSidePanel = false;
     },
 

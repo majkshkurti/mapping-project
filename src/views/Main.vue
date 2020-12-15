@@ -15,27 +15,15 @@
     </v-expand-transition>
 
     <v-app-bar app clipped-right height="60" color="#dc143c" dark>
+      <!-- <v-img contain src="/public/icons/covid_19.png"></v-img>  TODO: Use this image. -->
+      <v-icon large class="mr-2">fas fa-virus</v-icon>
+
       <v-toolbar-title
         @click="goToHome()"
         flat
         class="logo headline font-weight-bold black--text mr-3"
-        >Just Transition</v-toolbar-title
+        >COVID19 IMPACT</v-toolbar-title
       >
-      <v-tooltip right>
-        <template v-slot:activator="{ on }">
-          <v-btn
-            v-on="on"
-            small
-            depressed
-            fab
-            color="rgb(228, 76, 107)"
-            class="ml-0"
-            @click="openWebsite()"
-            ><v-icon medium>fas fa-question</v-icon></v-btn
-          > </template
-        ><span>Open Website</span>
-      </v-tooltip>
-
       <v-spacer></v-spacer>
 
       <div v-for="(fuelGroup, index) in fuelGroups" :key="index">
@@ -59,7 +47,6 @@
       </div>
       <v-spacer></v-spacer>
 
-      <span class="title pr-5">before it's too late</span>
       <v-btn icon @click.stop="drawer = !drawer"
         ><v-icon medium>{{ drawer ? '$close' : '$menu' }}</v-icon></v-btn
       >
@@ -111,9 +98,6 @@ export default {
         EventBus.$emit('resetMap');
       }
       this.$router.push({ name: 'oil' });
-    },
-    openWebsite() {
-      window.open('https://its.timetochange.today', '_blank');
     },
     zoomToLocation() {
       if (this.region === 'local') {

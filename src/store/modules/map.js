@@ -50,15 +50,15 @@ const state = {
   fuelGroups: [
     {
       name: 'coal',
-      title: 'Coal & Ash'
+      title: 'GDP'
     },
     {
       name: 'oil',
-      title: 'Oil & Gas'
+      title: 'Fiscal Stimulus'
     },
     {
       name: 'renewables',
-      title: 'Wind & Sun'
+      title: 'Unemployment'
     }
   ],
   regions: [
