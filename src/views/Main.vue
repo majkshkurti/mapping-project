@@ -3,7 +3,7 @@
     <v-expand-transition>
       <v-navigation-drawer
         v-model="drawer"
-        :width="!selectedCoorpNetworkEntity ? 460 : 600"
+        width="460"
         class="elevation-6"
         stateless
         app
@@ -26,25 +26,6 @@
       >
       <v-spacer></v-spacer>
 
-      <div v-for="(fuelGroup, index) in fuelGroups" :key="index">
-        <v-btn
-          min-width="140"
-          class="mx-10"
-          :dark="activeLayerGroup.fuelGroup === fuelGroup.name ? false : true"
-          @click="changeFuelGroup(fuelGroup)"
-          :color="
-            activeLayerGroup.fuelGroup === fuelGroup.name ? 'white' : '#E44C6B'
-          "
-          :class="{
-            'elevation-0': activeLayerGroup.fuelGroup !== fuelGroup.name,
-            'font-weight-bold black--text':
-              activeLayerGroup.fuelGroup === fuelGroup.name,
-            'elevation-6': activeLayerGroup.fuelGroup === fuelGroup.name
-          }"
-        >
-          {{ fuelGroup.title }}
-        </v-btn>
-      </div>
       <v-spacer></v-spacer>
 
       <v-btn icon @click.stop="drawer = !drawer"
@@ -65,24 +46,12 @@ import { EventBus } from '../EventBus.js';
 import Viewer from '../components/viewer/viewer';
 import SidePanel from '../components/core/SidePanel';
 //Store imports
-import { mapMutations, mapGetters } from 'vuex';
-import { mapFields } from 'vuex-map-fields';
+import { mapMutations } from 'vuex';
 
 export default {
   name: 'wg-app',
-  props: ['fuelGroup', 'region'],
-  computed: {
-    ...mapFields('map', {
-      selectedCoorpNetworkEntity: 'selectedCoorpNetworkEntity',
-      isEditingPost: 'isEditingPost',
-      isEditingHtml: 'isEditingHtml',
-      fuelGroups: 'fuelGroups'
-    }),
-    ...mapGetters('map', {
-      activeLayerGroup: 'activeLayerGroup',
-      fuelGroups: 'fuelGroups'
-    })
-  },
+
+  computed: {},
   components: {
     'app-viewer': Viewer,
     'side-panel': SidePanel
@@ -104,29 +73,18 @@ export default {
         EventBus.$emit('zoomToLocation');
       }
     },
-    changeFuelGroup(fuelGroup) {
-      this.$router.push({ path: `/${fuelGroup.name}` });
-      EventBus.$emit('noMapReset');
-    },
+
     ...mapMutations('map', {
       setActiveLayerGroup: 'SET_ACTIVE_LAYERGROUP'
     })
   },
-  created() {
-    this.setActiveLayerGroup({
-      fuelGroup: this.fuelGroup,
-      region: this.region
-    });
-  },
+  created() {},
   watch: {
     $route(newValue, oldValue) {
       if (oldValue.path === newValue.path) {
         return;
       }
-      this.setActiveLayerGroup({
-        fuelGroup: this.fuelGroup,
-        region: this.region
-      });
+
       this.zoomToLocation();
     }
   },

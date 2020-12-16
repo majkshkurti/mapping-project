@@ -587,25 +587,3 @@ export function formatPopupRows(feature, excludedProperties) {
   return transformed;
 }
 
-/**
- * The function returns IframeUrl
- */
-export function getIframeUrl(
-  splittedEntities,
-  corporateEntitiesUrls,
-  selectedCoorpNetworkEntity
-) {
-  let url;
-  const urls = corporateEntitiesUrls;
-  if (urls[selectedCoorpNetworkEntity]) {
-    url = urls[selectedCoorpNetworkEntity];
-  } else {
-    const keys = Object.keys(urls);
-    keys.forEach(key => {
-      if (splittedEntities.includes(key) && !url) {
-        url = urls[key];
-      }
-    });
-  }
-  return url;
-}

@@ -1,13 +1,10 @@
 <template>
   <div id="ol-map-container">
     <!-- Map Controls -->
-    <map-legend color="#dc143c" />
     <div style="position:absolute;left:20px;top:10px;">
-      <login-button></login-button>
       <zoom-control :map="map" />
       <full-screen />
       <share-map :map="map"></share-map>
-      <locate :map="map" />
     </div>
 
     <!-- Popup overlay  -->
@@ -50,19 +47,6 @@
             </div>
           </div>
         </vue-scroll>
-        <div v-if="popup.activeFeature" class="mt-1">
-          <a
-            v-if="
-              popup.activeLayer &&
-                popup.activeLayer.get('showZoomToFeature') !== false &&
-                popup.activeFeature &&
-                selectedCoorpNetworkEntity === null
-            "
-            href="javascript:void(0)"
-            @click="zoomToFeature()"
-          >
-          </a>
-        </div>
       </template>
     </overlay-popup>
 
@@ -86,47 +70,25 @@ import View from 'ol/View';
 import Overlay from 'ol/Overlay';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
-import VectorTileLayer from 'ol/layer/VectorTile';
-import Feature from 'ol/Feature';
-import RenderFeature from 'ol/render/Feature';
-import { fromExtent } from 'ol/geom/Polygon';
-import { fromLonLat } from 'ol/proj';
-import { extend } from 'ol/extent';
-import { like as likeFilter, or as orFilter } from 'ol/format/filter';
 
 // style imports
-import {
-  popupInfoStyle,
-  networkCorpHighlightStyle,
-  worldOverlayFill
-} from '../../../style/OlStyleDefs';
+import { popupInfoStyle } from '../../../style/OlStyleDefs';
 
 // import the app-wide EventBus
 import { EventBus } from '../../../EventBus';
 
 // utils imports
-import { LayerFactory } from '../../../factory/OlLayer';
 import { isCssColor } from '../../../utils/Helpers';
-import {
-  extractGeoserverLayerNames,
-  wfsRequestParser,
-  getLayerSourceUrl
-} from '../../../utils/Layer';
-import UrlUtil from '../../../utils/Url';
-import { geojsonToFeature } from '../../../utils/MapUtils';
 
 //Store imports
-import { mapMutations, mapGetters, mapActions } from 'vuex';
+import { mapMutations, mapGetters } from 'vuex';
 import { mapFields } from 'vuex-map-fields';
 
 // Map Controls
 import OverlayPopup from './controls/Overlay';
 import ZoomControl from './controls/ZoomControl';
 import FullScreen from './controls/FullScreen';
-import Locate from './controls/Locate';
-import Legend from './controls/Legend';
-import Login from './controls/Login';
-import Edit from './controls/Edit';
+
 import ShareMap from './controls/ShareMap';
 
 // Interactions
@@ -136,35 +98,20 @@ import { defaults as defaultInteractions } from 'ol/interaction';
 // Ol controls
 import { defaults as defaultControls, Attribution } from 'ol/control';
 
-// Lightbox
-import AppLightBox from '../../core/AppLightBox';
-
-// Media lightbox
-import MediaLightBox from '../../core/MediaLightBox';
-
 // Shared methods
 import { SharedMethods } from '../../../mixins/SharedMethods';
-
-// Services
-import http from '../../../services/http';
-import axios from 'axios';
 
 // Progress loader
 import ProgressLoader from '../../core/ProgressLoader';
 import Snackbar from '../../core/Snackbar';
-import { debounce } from '../../../utils/Helpers';
 
 export default {
   components: {
     'overlay-popup': OverlayPopup,
-    'map-legend': Legend,
-    'login-button': Login,
     'zoom-control': ZoomControl,
     'full-screen': FullScreen,
     'share-map': ShareMap,
-    locate: Locate,
     'progress-loader': ProgressLoader,
-    edit: Edit,
     Snackbar
   },
   name: 'app-ol-map',
@@ -176,13 +123,10 @@ export default {
       maxZoom: this.$appConfig.map.maxZoom,
       extent: this.$appConfig.map.extent,
       color: this.$appConfig.controlsColor,
-  
       activeInteractions: [],
       getInfoResult: [],
       radius: 300,
       mousePosition: undefined,
-      spotlightMessage: false,
-      lightBoxImages: [],
       progressLoading: {
         progressColor: '#dc143c',
         value: false
@@ -235,8 +179,6 @@ export default {
       me.setupMapClick();
       // Pointer Move
       me.setupMapPointerMove();
-      // Map Hover out event
-      me.setupMapHoverOut();
       // Move end event
       // Create popup overlay for get info
       me.createPopupOverlay();
@@ -255,7 +197,7 @@ export default {
     me.map = new Map({
       layers: [],
       interactions: defaultInteractions({
-        altShiftDragRotate: me.rotateableMap,
+        altShiftDragRotate: true,
         doubleClickZoom: false
       }).extend([this.dblClickZoomInteraction]),
       controls: defaultControls({
@@ -265,17 +207,14 @@ export default {
       view: new View({
         center: me.center || [0, 0],
         minResolution: 0.5,
-        maxResolution: 64000,
-        projection: 'EPSG:54030'
+        maxResolution: 64000
       })
     });
     //Add map to the vuex store.
     me.setMap(me.map);
     // Create layers from config and add them to map
     me.createLayers();
-
   },
-
   methods: {
     /**
      * Creates the OL layers due to the map "layers" array in app config.
@@ -285,11 +224,6 @@ export default {
       const me = this;
       // Get Info layer
       me.createGetInfoLayer();
-
-      this.$appConfig.map.layers.forEach(lConf => {
-        const layer = LayerFactory.getInstance(lConf);
-        layer.setZIndex(layerIndex);        
-      });
     },
     /**
      * Creates a layer to visualize selected GetInfo features.
@@ -308,8 +242,6 @@ export default {
       this.popup.highlightLayer = vector;
       this.map.addLayer(vector);
     },
-
-    
 
     /**
      * Sets the background color of the OL buttons to the color property.
@@ -395,11 +327,6 @@ export default {
      * Show getInfo popup.
      */
     showPopup(clickCoord) {
-      // Clear highligh feature (Don't clear if a corporate network entity is selected)
-      if (!this.selectedCoorpNetworkEntity) {
-        this.popup.highlightLayer.getSource().clear();
-      }
-
       let position = this.popup.activeFeature.getGeometry().getCoordinates();
       // Correct popup position (used feature coordinates insteaad of mouse)
       let closestPoint;
@@ -475,9 +402,7 @@ export default {
           duration: 800
         });
       }
-      setTimeout(() => {
-        this.selectedCoorpNetworkEntity = null;
-      }, 800);
+
       // Close popup
       this.popup.popupOverlay.setPosition(undefined);
       this.popup.showInSidePanel = true;
@@ -553,17 +478,6 @@ export default {
                 ? (overlayEl.style.color = hoverTextColor)
                 : (overlayEl.style.color = '');
             }
-            if (
-              (!feature.get('entity') && this.selectedCoorpNetworkEntity) ||
-              (feature.get('entity') &&
-                this.selectedCoorpNetworkEntity &&
-                this.splittedEntities &&
-                !this.splittedEntities.some(substring =>
-                  feature.get('entity').includes(substring)
-                ))
-            ) {
-              return;
-            }
 
             overlayEl.innerHTML = attr;
             this.overlay.setPosition(evt.coordinate);
@@ -574,50 +488,6 @@ export default {
         const resolutionLevel = this.map.getView().getResolution();
         if (resolutionLevel <= 20) {
           this.map.render();
-        }
-      });
-    },
-    setupMapHoverOut() {
-      const element = this.map.getTargetElement();
-
-      if (element) {
-        const me = this;
-        element.onmouseleave = debounce(function() {
-          me.updateMousePosition();
-        }, 50);
-      }
-    },
-    updateMousePosition() {
-      const me = this;
-      if (
-        me.popup.activeFeature &&
-        ['Point', 'MultiPoint'].includes(
-          me.popup.activeFeature.getGeometry().getType()
-        )
-      ) {
-        const coordinate = me.popup.activeFeature
-          .getGeometry()
-          .getCoordinates();
-        const pixel = me.map.getPixelFromCoordinate(coordinate);
-        if (pixel) {
-          me.mousePosition = pixel;
-          const resolutionLevel = this.map.getView().getResolution();
-          if (resolutionLevel <= 20) {
-            this.map.render();
-          }
-        }
-      }
-    },
-
-    setupMapMoveEnd() {
-      // After the map moveend event fires, determine if the instructions
-      // for using the spotlights should be shown based on zoom level.
-      this.map.on('moveend', () => {
-        const resolutionLevel = this.map.getView().getResolution();
-        if (resolutionLevel <= 20) {
-          this.spotlightMessage = true;
-        } else {
-          this.spotlightMessage = false;
         }
       });
     },
@@ -633,9 +503,7 @@ export default {
         if (me.activeInteractions.length > 0) {
           return;
         }
-        if (me.isEditingLayer || me.isEditingPost) {
-          return;
-        }
+
         let feature, layer;
         this.map.forEachFeatureAtPixel(
           evt.pixel,
@@ -665,340 +533,21 @@ export default {
         )
           return;
 
-        if (
-          feature &&
-          !feature.get('entity') &&
-          this.selectedCoorpNetworkEntity
-        )
-          return;
-
-        if (
-          feature &&
-          feature.get('entity') &&
-          this.selectedCoorpNetworkEntity &&
-          this.splittedEntities &&
-          !this.splittedEntities.some(substring =>
-            feature.get('entity').includes(substring)
-          )
-        ) {
-          return;
-        }
-
-        me.closePopup();
-        EventBus.$emit('clearEditHtml');
-
-        if (this.selectedCoorpNetworkEntity && !layer) {
-          return;
-        }
-
         this.popup.activeLayer = layer;
-        // Clear lightbox images array
-        if (this.lightBoxImages) {
-          this.lightBoxImages = [];
-        }
 
         if (feature) {
-          const props = feature.getProperties();
-          // Check if feature has video link
-          if (props.videoSrc || props.vimeoSrc) {
-            const mediabox = new MediaLightBox(
-              props.videoSrc || props.vimeoSrc,
-              props.caption || props.vimeoTitle
-            );
-            mediabox.open();
-            return;
-          }
           // Check if feature has lightbox array of images
-          if (props.lightbox) {
-            const images = JSON.parse(props.lightbox);
-            if (!Array.isArray(images)) return;
-            images.forEach(image => {
-              let imageUrl;
-              let caption = '';
-              if (typeof image === 'object') {
-                // Image is stored as object. Get imageUrl and caption values
-                imageUrl = image.imageUrl;
-                caption = image.caption;
-              } else {
-                // Image is stored as a string
-                imageUrl = image;
-              }
-              const url = UrlUtil.parseUrl(imageUrl);
-              this.lightBoxImages.push({
-                src: url,
-                thumb: url,
-                caption: caption
-              });
-            });
-            // Open lightbox
-            this.$refs.lightbox.open();
-            // Popup will not be opened if there are lightbox images
-            return;
-          }
           this.previousMapPosition = null;
           this.popup.activeFeature = feature.clone ? feature.clone() : feature;
 
-          // Add id reference
-          if (feature instanceof RenderFeature) {
-            const urls = layer.getSource().getUrls()[0];
-            const url = urls.match('tms/1.0.0/(.*)@EPSG');
-            if (!urls.includes('geoserver')) return;
-            if (!Array.isArray(url) || url.length < 2) return;
-            const geoserverLayerName = url[1];
-            const response = await http.get('./geoserver/wfs', {
-              params: {
-                service: 'WFS',
-                version: ' 2.0.0',
-                request: 'GetFeature',
-                outputFormat: 'application/json',
-                srsName: 'EPSG:3857',
-                typeNames: geoserverLayerName,
-                featureId: feature.getId()
-              }
-            });
-            if (response.data.features) {
-              const olFeatures = geojsonToFeature(response.data, {});
-              this.popup.activeFeature = olFeatures[0];
-              feature = olFeatures[0];
-            } else {
-              return;
-            }
-          }
           if (feature.getId()) {
             this.popup.activeFeature.setId(`clone.${feature.getId()}`);
           }
-
-          if (this.selectedCoorpNetworkEntity && this.popup.activeFeature) {
-            this.popup.highlightLayer.getSource().clear();
-            this.popup.activeFeature.setStyle(null);
-            this.popup.highlightLayer
-              .getSource()
-              .addFeature(this.popup.activeFeature);
-          }
-
-          if (this.selectedCoorpNetworkEntity) {
-            this.showPopup(evt.coordinate);
-          } else {
-            this.zoomToFeature();
-          }
+          this.zoomToFeature();
         }
       });
     },
-    spotlight: function(e) {
-      let ctx = e.context;
-      const pixelRatio = e.frameState.pixelRatio;
-      ctx.save();
-      ctx.beginPath();
-      if (this.mousePosition) {
-        // Only show a circle around the mouse --
-        ctx.arc(
-          this.mousePosition[0] * pixelRatio,
-          this.mousePosition[1] * pixelRatio,
-          this.radius * pixelRatio,
-          0,
-          2 * Math.PI
-        );
-        ctx.lineWidth = 6 * pixelRatio;
-        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-        ctx.stroke();
-      }
-      ctx.clip();
-    },
-    queryCorporateNetwork() {
-      const entity = this.popup.activeFeature.get('entity');
-      const workspace = 'petropolis';
-      if (!entity) return;
-      this.selectedCoorpNetworkEntity = entity;
-      if (!this.layersWithEntityField || !this.splittedEntities) return;
-      ///////////////////////
-      if (!this.queryLayersGeoserverNames) {
-        const queryableLayers = [];
-        this.$appConfig.map.layers.forEach(layer => {
-          if (
-            this.activeLayerGroupConf.layers.includes(layer.name) &&
-            layer.includeInSearch !== false
-          ) {
-            queryableLayers.push(layer);
-          }
-        });
-
-        this.queryLayersGeoserverNames = extractGeoserverLayerNames(
-          queryableLayers,
-          this.layersWithEntityField
-        )[workspace]['names'].filter(name =>
-          this.layersWithEntityField.includes(name)
-        );
-      }
-
-      const filterArray = [];
-      this.splittedEntities.forEach(entity => {
-        filterArray.push(likeFilter('entity', `%${entity}%`));
-      });
-      if (filterArray.length === 0) return;
-      let filter;
-      filterArray.length === 1
-        ? (filter = filterArray[0])
-        : (filter = orFilter(...filterArray));
-
-      let promiseArray = [];
-      this.queryLayersGeoserverNames.forEach(geoserverLayerName => {
-        const wfsRequest = wfsRequestParser(
-          'EPSG:3857',
-          workspace,
-          [geoserverLayerName],
-          filter
-        );
-        promiseArray.push(
-          http.post(`./geoserver/${workspace}/wfs`, wfsRequest, {
-            headers: { 'Content-Type': 'text/xml' },
-            layerName: geoserverLayerName
-          })
-        );
-      });
-
-      this.progressLoading.value = true;
-      this.progressLoading.message = `Fetching data...`;
-      this.popup.highlightLayer.getSource().clear();
-      this.popup.worldExtentLayer.getSource().clear();
-      this.popup.selectedCorpNetworkLayer.getSource().clear();
-      const mapLayers = this.map.getLayers().getArray();
-      axios
-        .all(promiseArray)
-        .then(results => {
-          const olFeatures = [];
-          results.forEach(response => {
-            if (response.data.features) {
-              const olFeaturesArray = geojsonToFeature(response.data, {});
-              const geoserverLayerName = response.config.layerName;
-              olFeaturesArray.forEach(feature => {
-                const firstTwoWords = feature
-                  .get('entity')
-                  .split(' ')
-                  .slice(0, 2)
-                  .join(' ');
-
-                if (
-                  firstTwoWords &&
-                  this.splittedEntities.includes(firstTwoWords)
-                ) {
-                  if (feature.getGeometry().getType() === 'Point') {
-                    // Find all the layers that have this feature using geoserverLayerName
-                    mapLayers.forEach(layer => {
-                      const url = getLayerSourceUrl(layer.getSource());
-                      if (url && url.includes(geoserverLayerName)) {
-                        const clonedFeature = feature.clone();
-                        clonedFeature.setStyle(layer.getStyle());
-                        olFeatures.push(clonedFeature);
-                      }
-                    });
-                  } else {
-                    olFeatures.push(feature.clone());
-                  }
-                }
-              });
-            }
-          });
-          if (olFeatures) {
-            this.popup.selectedCorpNetworkLayer
-              .getSource()
-              .addFeatures(olFeatures);
-            // Zoom to extent adding a padding to the extent
-            var extent = olFeatures[0]
-              .getGeometry()
-              .getExtent()
-              .slice(0);
-            olFeatures.forEach(function(feature) {
-              extend(extent, feature.getGeometry().getExtent());
-            });
-            setTimeout(() => {
-              this.map.getView().fit(extent, {
-                padding: [30, 80, 80, 80],
-                duration: 800
-              });
-            }, 500);
-            this.popup.popupOverlay.setPosition(undefined);
-
-            const worldOverlayGeometry = fromExtent([
-              -20037508.342789244,
-              -20037508.342789244,
-              20037508.342789244,
-              20037508.342789244
-            ]);
-            const worldExtentFeature = new Feature({
-              geometry: worldOverlayGeometry
-            });
-            this.popup.worldExtentLayer
-              .getSource()
-              .addFeature(worldExtentFeature);
-            this.progressLoading.value = false;
-          }
-        })
-        .catch(error => {
-          // handle error
-          console.log(error);
-          this.progressLoading.value = false;
-          //TODO: Show snackbar for errors.
-        });
-    },
-    fetchDescribeFeatureTypes() {
-      const geoserverLayerNames = extractGeoserverLayerNames(
-        this.$appConfig.map.layers
-      );
-      const workspace = 'petropolis';
-      if (!geoserverLayerNames[workspace]) return;
-
-      const filterLayersWithEntity = [];
-      geoserverLayerNames[workspace].names.forEach(geoserverLayerName => {
-        http
-          .get('./geoserver/wfs', {
-            params: {
-              service: 'WFS',
-              version: ' 2.0.0',
-              request: 'DescribeFeatureType',
-              outputFormat: 'application/json',
-              typeNames: `${workspace}:${geoserverLayerName}`
-            }
-          })
-          .then(response => {
-            if (response.data && response.data.featureTypes) {
-              const featureTypes = response.data.featureTypes;
-              featureTypes.forEach(featureType => {
-                featureType.properties.forEach(property => {
-                  if (
-                    property.name === 'entity' &&
-                    filterLayersWithEntity.indexOf(featureType.typeName) === -1
-                  ) {
-                    filterLayersWithEntity.push(featureType.typeName);
-                  }
-                });
-              });
-              this.layersWithEntityField = filterLayersWithEntity;
-
-              Object.keys(geoserverLayerNames[workspace].mapped).forEach(
-                layerName => {
-                  if (
-                    geoserverLayerNames[workspace].mapped[layerName] ===
-                    geoserverLayerName
-                  ) {
-                    this.layersMetadata[layerName] = {
-                      properties: featureTypes[0].properties,
-                      typeName: featureTypes[0].typeName
-                    };
-                  }
-                }
-              );
-            }
-          });
-      });
-    },
     isPopupRowVisible(item) {
-      if (this.selectedCoorpNetworkEntity && this.popup.activeFeature) {
-        return (
-          !this.hiddenProps.includes(item.property) &&
-          !['null', '---'].includes(item.value)
-        );
-      }
-
       if (!['null', '---'].includes(item.value)) {
         return (
           this.popup.diveVisibleProps.includes(item.property) &&
@@ -1008,32 +557,7 @@ export default {
         return false;
       }
     },
-    resetMap() {
-      // Other Operotionial Layers
-      if (!this.map) return;
-      const activeLayerGroup = this.activeLayerGroup;
-      const visibleGroup = this.$appConfig.map.groups[
-        activeLayerGroup.fuelGroup
-      ][activeLayerGroup.region];
 
-      if (!this.noMapReset) {
-        if (visibleGroup.center) {
-          this.map.getView().setCenter(fromLonLat(visibleGroup.center));
-        }
-        if (visibleGroup.resolution) {
-          this.map.getView().setResolution(visibleGroup.resolution);
-        }
-      }
-      this.noMapReset = false;
-
-      if (visibleGroup.minResolution && visibleGroup.maxResolution) {
-        this.map.getView().minResolution_ = visibleGroup.minResolution;
-        this.map.getView().maxResolution_ = visibleGroup.maxResolution;
-      }
-    },
-    ...mapActions('map', {
-      fetchColorMapEntities: 'fetchColorMapEntities'
-    }),
     ...mapMutations('map', {
       setMap: 'SET_MAP',
       setLayer: 'SET_LAYER',
@@ -1043,43 +567,17 @@ export default {
   },
   computed: {
     ...mapGetters('map', {
-      activeLayerGroup: 'activeLayerGroup',
-      popupInfo: 'popupInfo',
-      splittedEntities: 'splittedEntities',
-      htmlPostLayerConf: 'htmlPostLayerConf'
+      popupInfo: 'popupInfo'
     }),
-    ...mapGetters('auth', {
-      loggedUser: 'loggedUser'
-    }),
+
     ...mapFields('map', {
       previousMapPosition: 'previousMapPosition',
-      popup: 'popup',
-      isEditingLayer: 'isEditingLayer',
-      isEditingPost: 'isEditingPost',
-      geoserverLayerNames: 'geoserverLayerNames',
-      layersMetadata: 'layersMetadata',
-      layersWithEntityField: 'layersWithEntityField',
-      selectedCoorpNetworkEntity: 'selectedCoorpNetworkEntity'
+      popup: 'popup'
     }),
-    activeLayerGroupConf() {
-      const group = this.$appConfig.map.groups[this.activeLayerGroup.fuelGroup][
-        this.activeLayerGroup.region
-      ];
-      return group;
-    },
+
     hiddenProps() {
       const hiddenProps = this.$appConfig.map.featureInfoHiddenProps;
       return hiddenProps || [];
-    },
-    searchLabel() {
-      const searchLabel = this.popup.activeLayer.get('searchLabel');
-      if (searchLabel) {
-        return searchLabel;
-      }
-      if (this.activeLayerGroupConf.searchLabel) {
-        return this.activeLayerGroupConf.searchLabel.toUpperCase();
-      }
-      return 'CORPORATE NETWORK';
     }
   },
   watch: {
@@ -1090,33 +588,6 @@ export default {
       } else {
         this.dblClickZoomInteraction.setActive(true);
       }
-    },
-    activeLayerGroup(newValue, oldValue) {
-      if (oldValue.region === 'global') {
-        this.noMapReset = false;
-      }
-      // store layer visibility state before changing fuel group
-      const mapLayers = this.map.getLayers().getArray();
-      mapLayers.forEach(layer => {
-        const name = layer.get('name');
-        const visibility = layer.getVisible();
-        this.layerVisibilityState[name] = visibility;
-      });
-      this.removeAllLayers();
-      this.closePopup();
-      // Reset geoserver layer names array
-      this.geoserverLayerNames = null;
-      this.queryLayersGeoserverNames = null;
-      this.selectedCoorpNetworkEntity = null;
-      this.createLayers();
-      this.fetchColorMapEntities();
-      // Emit group change event.
-      EventBus.$emit('group-changed');
-      EventBus.$emit('clearEditHtml');
-    },
-    isEditingLayer() {
-      // Disables double click zoom when user is editing.
-      this.dblClickZoomInteraction.setActive(!this.isEditingLayer);
     }
   }
 };

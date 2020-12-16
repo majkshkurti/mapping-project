@@ -1,7 +1,6 @@
 import '@fortawesome/fontawesome-free/css/all.css'; // Ensure you are using css-loader
 import Vue from 'vue';
 import Vuetify from 'vuetify/lib';
-import { TiptapVuetifyPlugin } from 'tiptap-vuetify';
 
 Vue.use(Vuetify);
 
@@ -11,7 +10,7 @@ const vuetify = new Vuetify({
   }
 });
 
-Vue.use(TiptapVuetifyPlugin, {
+Vue.use({
   vuetify,
   iconsGroup: 'md'
 });
