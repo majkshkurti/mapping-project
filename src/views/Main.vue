@@ -19,13 +19,27 @@
       <v-icon large class="mr-2">fas fa-virus</v-icon>
 
       <v-toolbar-title
-        @click="goToHome()"
         flat
         class="logo headline font-weight-bold black--text mr-3"
         >COVID19 IMPACT</v-toolbar-title
       >
       <v-spacer></v-spacer>
-
+      <div v-for="(item, index) in topics" :key="index">
+        <v-btn
+          min-width="140"
+          class="mx-10"
+          :dark="index === activeTopic ? false : true"
+          @click="setActiveTopic(index)"
+          :color="index === activeTopic ? 'white' : '#E44C6B'"
+          :class="{
+            'elevation-0': index !== activeTopic,
+            'font-weight-bold black--text': index === activeTopic,
+            'elevation-6': index === activeTopic
+          }"
+        >
+          {{ item.title }}
+        </v-btn>
+      </div>
       <v-spacer></v-spacer>
 
       <v-btn icon @click.stop="drawer = !drawer"
@@ -46,12 +60,17 @@ import { EventBus } from '../EventBus.js';
 import Viewer from '../components/viewer/viewer';
 import SidePanel from '../components/core/SidePanel';
 //Store imports
-import { mapMutations } from 'vuex';
+import { mapMutations, mapGetters } from 'vuex';
 
 export default {
   name: 'wg-app',
 
-  computed: {},
+  computed: {
+    ...mapGetters('map', {
+      topics: 'topics',
+      activeTopic: 'activeTopic'
+    })
+  },
   components: {
     'app-viewer': Viewer,
     'side-panel': SidePanel
@@ -62,20 +81,16 @@ export default {
     };
   },
   methods: {
-    goToHome() {
-      if (this.$router.currentRoute.name === 'oil') {
-        EventBus.$emit('resetMap');
-      }
-      this.$router.push({ name: 'oil' });
+    changeMap(index) {
+      this.activeMap = index;
     },
     zoomToLocation() {
       if (this.region === 'local') {
         EventBus.$emit('zoomToLocation');
       }
     },
-
     ...mapMutations('map', {
-      setActiveLayerGroup: 'SET_ACTIVE_LAYERGROUP'
+      setActiveTopic: 'SET_ACTIVE_TOPIC'
     })
   },
   created() {},

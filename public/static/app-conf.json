@@ -29,7 +29,36 @@
       0.5972
     ],
     "center": [0, 0],
-   "layers": [],
+    "layers": [
+      {
+        "type": "XYZ",
+        "name": "mapboxBackground",
+        "group": "backgroundLayers",
+        "url": "https://api.mapbox.com/styles/v1/majk/ckgpvfzy934iv19pj8e9vbnnf/tiles/256/{z}/{x}/{y}",
+        "accessToken": "pk.eyJ1IjoibWFqayIsImEiOiJjazkyeWJnM2kwYmZsM25tczV3bjdqbnN2In0.IJ1PxolSiosSbsSioBZ7oQ",
+        "displayInLegend": false,
+        "maxZoom": 10,
+        "zIndex": 100,
+        "visible": true,
+        "attributions": "© <a href='https://www.mapbox.com/map-feedback/'>Mapbox</a> © <a href='https://www.openstreetmap.org/copyright'> OpenStreetMap contributors</a>"
+      },
+       {
+        "type": "VECTOR",
+        "name": "gdp",
+        "url": "./static/gdp.geojson",
+        "queryable": true,
+        "displayInLegend": true,
+        "legendUrl": "./images/gdp.PNG",
+        "legendDisplayName": "GDP",
+        "isInteractive": true,
+        "format": "GeoJSON",
+        "visible": true,
+        "zIndex": 0,
+        "minResolution": 0.25,
+        "maxResolution": 16000,
+        "hoverable": true
+      }
+    ],
 
     "popupFieldsMapping": {
       "default": {

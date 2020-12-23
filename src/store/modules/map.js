@@ -1,12 +1,27 @@
 import { getField, updateField } from 'vuex-map-fields';
-import {
-  formatPopupRows,
- 
-} from '../../utils/Layer';
-
+import { formatPopupRows } from '../../utils/Layer';
 
 const state = {
   map: null,
+  activeTopic: 1,
+  currentYear: 2020,
+  topics: [
+    {
+      name: 'unemployment',
+      field: 'UNEMP',
+      title: 'Unemployment'
+    },
+    {
+      name: 'gdp',
+      field: 'GDP',
+      title: 'GDP'
+    },
+    {
+      name: 'spending',
+      field: 'SPEND',
+      title: 'Spendings'
+    }
+  ],
   messages: {
     snackbar: {
       type: 'info',
@@ -38,16 +53,15 @@ const state = {
     showInSidePanel: false
   },
   layers: {}, // Only for operational layers
-  activeLayerGroup: null,
   colorMapEntities: {}
 };
 
-const actions = {
-  
-}
+const actions = {};
 
 const getters = {
   map: state => state.map,
+  topics: state => state.topics,
+  activeTopic: state => state.activeTopic,
   layers: state => state.layers,
   messages: state => state.messages,
   snackbar: state => state.messages.snackbar,
@@ -64,10 +78,12 @@ const getters = {
   getField
 };
 
-
 const mutations = {
   TOGGLE_SNACKBAR(state, payload) {
     Object.assign(state.messages.snackbar, payload);
+  },
+  SET_ACTIVE_TOPIC(state, topic) {
+    state.activeTopic = topic
   },
   SET_LAYER(state, layer) {
     if (layer.get('name')) {

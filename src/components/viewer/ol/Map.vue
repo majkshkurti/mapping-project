@@ -1,10 +1,10 @@
 <template>
   <div id="ol-map-container">
     <!-- Map Controls -->
+    <map-legend color="#dc143c" />
     <div style="position:absolute;left:20px;top:10px;">
       <zoom-control :map="map" />
       <full-screen />
-      <share-map :map="map"></share-map>
     </div>
 
     <!-- Popup overlay  -->
@@ -79,6 +79,7 @@ import { EventBus } from '../../../EventBus';
 
 // utils imports
 import { isCssColor } from '../../../utils/Helpers';
+import { LayerFactory } from '../../../factory/OlLayer';
 
 //Store imports
 import { mapMutations, mapGetters } from 'vuex';
@@ -88,8 +89,8 @@ import { mapFields } from 'vuex-map-fields';
 import OverlayPopup from './controls/Overlay';
 import ZoomControl from './controls/ZoomControl';
 import FullScreen from './controls/FullScreen';
+import Legend from './controls/Legend';
 
-import ShareMap from './controls/ShareMap';
 
 // Interactions
 import DoubleClickZoom from 'ol/interaction/DoubleClickZoom';
@@ -105,12 +106,18 @@ import { SharedMethods } from '../../../mixins/SharedMethods';
 import ProgressLoader from '../../core/ProgressLoader';
 import Snackbar from '../../core/Snackbar';
 
+import proj4 from 'proj4';
+import { register } from 'ol/proj/proj4';
+import { get as getProjection } from 'ol/proj';
+
+import { gdpStyle } from '../../../style/OlStyleDefs';
+
 export default {
   components: {
     'overlay-popup': OverlayPopup,
+    'map-legend': Legend,
     'zoom-control': ZoomControl,
     'full-screen': FullScreen,
-    'share-map': ShareMap,
     'progress-loader': ProgressLoader,
     Snackbar
   },
@@ -143,31 +150,11 @@ export default {
   mixins: [SharedMethods],
   mounted() {
     var me = this;
-    // Add keydown event listener to change spotlight radius
-    window.addEventListener('keydown', e => {
-      if (e.keyCode === 38) {
-        // up arrow key
-        this.radius = Math.min(this.radius + 5, 800);
-        this.map.render();
-      } else if (e.keyCode === 40) {
-        // down arrow key
-        this.radius = Math.max(this.radius - 5, 0);
-        this.map.render();
-      }
-    });
     // Make the OL map accessible for Mapable mixin even 'ol-map-mounted' has
     // already been fired. Don not use directly in cmps, use Mapable instead.
     Vue.prototype.$map = me.map;
     // Send the event 'ol-map-mounted' with the OL map as payload
     EventBus.$emit('ol-map-mounted', me.map);
-
-    // Capture the event 'findCorporateNetwork' emitted from sidepanel
-    EventBus.$on('findCorporateNetwork', me.queryCorporateNetwork);
-    EventBus.$on('closePopupInfo', me.closePopup);
-    EventBus.$on('resetMap', me.resetMap);
-    EventBus.$on('noMapReset', () => {
-      this.noMapReset = true;
-    });
 
     // resize the map, so it fits to parent
     window.setTimeout(() => {
@@ -194,6 +181,14 @@ export default {
     // Need to reference as we should deactive double click zoom when there
     // are active interaction like draw/modify
     this.dblClickZoomInteraction = new DoubleClickZoom();
+    proj4.defs(
+      'EPSG:54030',
+      '+proj=robin +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs'
+    );
+    register(proj4);
+    const mapProjection = getProjection('EPSG:54030');
+    const projExtent = mapProjection.getExtent();
+    console.log(projExtent);
     me.map = new Map({
       layers: [],
       interactions: defaultInteractions({
@@ -205,9 +200,8 @@ export default {
         zoom: false
       }).extend([attribution]),
       view: new View({
-        center: me.center || [0, 0],
-        minResolution: 0.5,
-        maxResolution: 64000
+        center: [0, 0],
+        zoom: 2
       })
     });
     //Add map to the vuex store.
@@ -224,6 +218,15 @@ export default {
       const me = this;
       // Get Info layer
       me.createGetInfoLayer();
+      this.$appConfig.map.layers.forEach(lConf => {
+        const layer = LayerFactory.getInstance(lConf);
+
+        me.setLayer(layer);
+        if (layer.get('name') === 'gdp') {
+          console.log(gdpStyle);
+          layer.setStyle(gdpStyle);
+        }
+      });
     },
     /**
      * Creates a layer to visualize selected GetInfo features.
@@ -432,57 +435,54 @@ export default {
           return;
         }
         let feature, layer;
-        if (this.isEditingLayer === false && this.isEditingPost === false) {
-          this.map.forEachFeatureAtPixel(
-            evt.pixel,
-            (f, l) => {
-              // Order of features is based is based on zIndex.
-              // First feature is on top, last feature is on bottom.
-              if (!feature && l.get('isInteractive') !== false) {
-                feature = f;
-                layer = l;
-              }
-            },
-            {
-              hitTolerance: 3
+        this.map.forEachFeatureAtPixel(
+          evt.pixel,
+          (f, l) => {
+            // Order of features is based is based on zIndex.
+            // First feature is on top, last feature is on bottom.
+            if (!feature && l.get('isInteractive') !== false) {
+              feature = f;
+              layer = l;
             }
-          );
-          this.map.getTarget().style.cursor = feature ? 'pointer' : '';
-
-          if (!feature || !layer.get('hoverable')) {
-            overlayEl.innerHTML = null;
-            this.overlay.setPosition(undefined);
-          } else {
-            if (!feature) return;
-            if (
-              this.popup.activeFeature &&
-              this.popup.activeFeature.getId() === `clone.${feature.getId()}`
-            )
-              return;
-            const attr =
-              feature.get('hoverAttribute') ||
-              feature.get('title') ||
-              feature.get('entity') ||
-              feature.get('NAME');
-            if (!attr) return;
-            if (layer.get('styleObj')) {
-              const { hoverTextColor, hoverBackgroundColor } = JSON.parse(
-                layer.get('styleObj')
-              );
-
-              hoverBackgroundColor && overlayEl
-                ? (overlayEl.style.backgroundColor = hoverBackgroundColor)
-                : (overlayEl.style.backgroundColor = '');
-
-              hoverTextColor && overlayEl
-                ? (overlayEl.style.color = hoverTextColor)
-                : (overlayEl.style.color = '');
-            }
-
-            overlayEl.innerHTML = attr;
-            this.overlay.setPosition(evt.coordinate);
+          },
+          {
+            hitTolerance: 3
           }
+        );
+        this.map.getTarget().style.cursor = feature ? 'pointer' : '';
+
+        if (!feature || !layer.get('hoverable')) {
+          overlayEl.innerHTML = null;
+          this.overlay.setPosition(undefined);
+        } else {
+          if (!feature) return;
+          if (
+            this.popup.activeFeature &&
+            this.popup.activeFeature.getId() === `clone.${feature.getId()}`
+          )
+            return;
+          const topic = this.topics[this.activeTopic];
+          const fieldName = `${topic.field}_${this.currentYear}`;
+          const attr = feature.get(fieldName);
+          if (!attr) return;
+          if (layer.get('styleObj')) {
+            const { hoverTextColor, hoverBackgroundColor } = JSON.parse(
+              layer.get('styleObj')
+            );
+
+            hoverBackgroundColor && overlayEl
+              ? (overlayEl.style.backgroundColor = hoverBackgroundColor)
+              : (overlayEl.style.backgroundColor = '');
+
+            hoverTextColor && overlayEl
+              ? (overlayEl.style.color = hoverTextColor)
+              : (overlayEl.style.color = '');
+          }
+
+          overlayEl.innerHTML = `${topic.title}: ${attr}%`;
+          this.overlay.setPosition(evt.coordinate);
         }
+
         this.mousePosition = this.map.getEventPixel(evt.originalEvent);
         // Render is only triggered for spotlight which is visible in zoom levels below 20
         const resolutionLevel = this.map.getView().getResolution();
@@ -569,10 +569,12 @@ export default {
     ...mapGetters('map', {
       popupInfo: 'popupInfo'
     }),
-
     ...mapFields('map', {
       previousMapPosition: 'previousMapPosition',
-      popup: 'popup'
+      popup: 'popup',
+      activeTopic: 'activeTopic',
+      currentYear: 'currentYear',
+      topics: 'topics'
     }),
 
     hiddenProps() {
