@@ -7,7 +7,7 @@
         2020 Q1
       </v-chip>
     </div>
-    <div style="position:absolute;right:50%;bottom:10px;">
+    <div style="position:absolute;right:35%;bottom:10px;">
       <time-slider></time-slider>
     </div>
     <div style="position:absolute;left:20px;top:10px;">
