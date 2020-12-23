@@ -10,12 +10,12 @@
           color="#dc143c"
           @click="togglePlay"
         >
-          <v-icon medium>{{
-            isPlaying ? 'play_circle' : 'stop'
+          <v-icon large>{{
+            isPlaying ? 'stop' : 'play_arrow'
           }}</v-icon>
         </v-btn>
       </template>
-      <span>{{isPlaying ? 'Play' : 'Stop'}}</span>
+      <span>{{isPlaying ? 'Stop' : 'Play'}}</span>
     </v-tooltip>
   </div>
 </template>

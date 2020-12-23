@@ -2,6 +2,14 @@
   <div id="ol-map-container">
     <!-- Map Controls -->
     <map-legend color="#dc143c" />
+    <div style="position:absolute;right:10px;top:10px;z-index:1;">
+      <v-chip class="ma-2" color="#dc143c" text-color="white">
+        2020 Q1
+      </v-chip>
+    </div>
+    <div style="position:absolute;right:50%;bottom:10px;">
+      <time-slider></time-slider>
+    </div>
     <div style="position:absolute;left:20px;top:10px;">
       <zoom-control :map="map" />
       <full-screen />
@@ -90,7 +98,7 @@ import OverlayPopup from './controls/Overlay';
 import ZoomControl from './controls/ZoomControl';
 import FullScreen from './controls/FullScreen';
 import Legend from './controls/Legend';
-
+import TimeSlider from './controls/TimeSlider';
 
 // Interactions
 import DoubleClickZoom from 'ol/interaction/DoubleClickZoom';
@@ -119,6 +127,7 @@ export default {
     'zoom-control': ZoomControl,
     'full-screen': FullScreen,
     'progress-loader': ProgressLoader,
+    'time-slider': TimeSlider,
     Snackbar
   },
   name: 'app-ol-map',
