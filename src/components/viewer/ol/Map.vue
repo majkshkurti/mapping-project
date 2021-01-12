@@ -2,12 +2,7 @@
   <div id="ol-map-container">
     <!-- Map Controls -->
     <map-legend color="#dc143c" />
-    <div style="position:absolute;right:10px;top:10px;z-index:1;">
-      <v-chip class="ma-2" color="#dc143c" text-color="white">
-        2020 Q1
-      </v-chip>
-    </div>
-    <div style="position:absolute;right:35%;bottom:10px;">
+    <div style="position:absolute;right:30%;bottom:10px;">
       <time-slider></time-slider>
     </div>
     <div style="position:absolute;left:20px;top:10px;">
@@ -488,7 +483,7 @@ export default {
               : (overlayEl.style.color = '');
           }
 
-          overlayEl.innerHTML = `${topic.title}: ${attr}%`;
+          overlayEl.innerHTML = `${topic.title}: ${attr}%, ${feature.get('name')}`;
           this.overlay.setPosition(evt.coordinate);
         }
 

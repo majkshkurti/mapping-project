@@ -41,6 +41,7 @@ export function gdpStyle(feature) {
   // -5, 0 =>
   // 0, 5 =>  #1bff67
   const gdp = feature.get('GDP_2020');
+  
   if (gdp > -25 && gdp < -20) {
     return new OlStyle({
       fill: new OlFill({
