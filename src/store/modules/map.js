@@ -53,7 +53,8 @@ const state = {
     showInSidePanel: false
   },
   layers: {}, // Only for operational layers
-  colorMapEntities: {}
+  colorMapEntities: {},
+  csvData: []
 };
 
 const actions = {};
@@ -74,7 +75,7 @@ const getters = {
   persistentLayers: state => state.persistentLayers,
   postEditLayer: state => state.postEditLayer,
   lastSelectedLayer: state => state.lastSelectedLayer,
-
+  csvData: state => state.csvData,
   getField
 };
 
@@ -83,7 +84,7 @@ const mutations = {
     Object.assign(state.messages.snackbar, payload);
   },
   SET_ACTIVE_TOPIC(state, topic) {
-    state.activeTopic = topic
+    state.activeTopic = topic;
   },
   SET_LAYER(state, layer) {
     if (layer.get('name')) {

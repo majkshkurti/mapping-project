@@ -61,7 +61,9 @@ import Viewer from '../components/viewer/viewer';
 import SidePanel from '../components/core/SidePanel';
 //Store imports
 import { mapMutations, mapGetters } from 'vuex';
-
+import { mapFields } from 'vuex-map-fields';
+import Papa from 'papaparse';
+import { reshapeData } from '../utils/Helpers';
 export default {
   name: 'wg-app',
 
@@ -69,6 +71,9 @@ export default {
     ...mapGetters('map', {
       topics: 'topics',
       activeTopic: 'activeTopic'
+    }),
+    ...mapFields('map', {
+      csvData: 'csvData'
     })
   },
   components: {
@@ -89,17 +94,38 @@ export default {
         EventBus.$emit('zoomToLocation');
       }
     },
+
     ...mapMutations('map', {
       setActiveTopic: 'SET_ACTIVE_TOPIC'
-    })
+    }),
+    fetchCsvData() {
+      const topic = this.topics[this.activeTopic].name;
+      if (!this.csvData[topic]) {
+        Papa.parse(`./static/${topic}.csv`, {
+          download: true,
+          header: true,
+          skipEmptyLines: true,
+          complete: results => {
+            if (Object.keys(results.data[0]).length === 3) {
+              const reshapedData = reshapeData(results.data);
+              console.log(reshapedData);
+              this.csvData[topic] = reshapedData;
+              console.log(this.csvData);
+            }
+          }
+        });
+      }
+    }
   },
-  created() {},
+  created() {
+    this.fetchCsvData();
+  },
   watch: {
     $route(newValue, oldValue) {
       if (oldValue.path === newValue.path) {
         return;
       }
-
+      this.fetchCsvData();
       this.zoomToLocation();
     }
   },

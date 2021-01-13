@@ -2,12 +2,21 @@ import OlStyle from 'ol/style/Style';
 import OlStroke from 'ol/style/Stroke';
 import OlFill from 'ol/style/Fill';
 import OlCircle from 'ol/style/Circle';
+import colormap from 'colormap';
 
 let strokeColor = 'rgba(236, 236, 236, 0.7)';
 let fillColor = 'rgba(255,0,0, 0.2)';
 let imageColor = 'blue';
 let radiusHighlightColor = 'rgba(0,0,255,0.3)';
 let zIndex = 100;
+
+const steps = 50;
+const ramp = colormap({
+  colormap: 'blackbody',
+  nshades: steps
+});
+
+console.log(ramp);
 
 export function defaultStyle(feature) {
   const geomType = feature.getGeometry().getType();
@@ -41,7 +50,7 @@ export function gdpStyle(feature) {
   // -5, 0 =>
   // 0, 5 =>  #1bff67
   const gdp = feature.get('GDP_2020');
-  
+
   if (gdp > -25 && gdp < -20) {
     return new OlStyle({
       fill: new OlFill({

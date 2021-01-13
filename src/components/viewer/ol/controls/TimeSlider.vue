@@ -27,6 +27,7 @@
 </template>
 <script>
 import { mapGetters } from 'vuex';
+import { EventBus } from '../../../../EventBus';
 
 export default {
   name: 'play',
@@ -50,8 +51,7 @@ export default {
         GDP_20_Q3: 'Q3 2020',
         GDP_20_Q4: 'Q4 2020',
         GDP_21_Q1: 'Q1 2021',
-        GDP_21_Q2: 'Q2 2021',
-        
+        GDP_21_Q2: 'Q2 2021'
       },
       2: {}
     }
@@ -82,10 +82,12 @@ export default {
           this.current = 0;
         }
       }, 1000);
+      EventBus.$emit('play');
     },
     stopPlaying() {
       this.isPlaying = false;
       clearInterval(this.timeInterval);
+      EventBus.$emit('stop');
     }
   }
 };

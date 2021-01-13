@@ -1,4 +1,4 @@
-
+import _groupBy from 'lodash/groupBy';
 
 export function humanize(str) {
   return str
@@ -80,6 +80,27 @@ export function debounce(fn, delay) {
       fn.apply(that, args);
     }, delay);
   };
+}
+
+/*
+    reshapes the data from the second accepted csv format to the other :
+    (one row per contender and per date) => (one row per date (ordered) and one column per contender.)
+    */
+
+export function reshapeData(data) {
+  // groupby dates (first column)
+  let column_names = new Set(data.map(x => x[Object.keys(x)[1]]));
+  const grouped_by_date = _groupBy(data, e => e[Object.keys(e)[0]]);
+  return Object.keys(grouped_by_date)
+    .sort()
+    .map(k => {
+      const item = { date: k };
+      column_names.forEach(n => (item[n] = 0));
+      grouped_by_date[k].forEach(
+        e => (item[e[Object.keys(e)[1]]] = e[Object.keys(e)[2]])
+      );
+      return item;
+    });
 }
 
 export function getCurrentDate() {
