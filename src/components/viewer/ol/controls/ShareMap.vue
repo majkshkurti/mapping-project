@@ -20,7 +20,7 @@
       <v-card class="pb-1">
         <v-app-bar color="#dc143c" flat height="50" dark>
           <v-icon class="mr-3">fas fa-share</v-icon>
-          <v-toolbar-title>Link to map </v-toolbar-title>
+          <-title>Link to map </-title>
           <v-spacer></v-spacer>
           <v-app-bar-nav-icon @click.stop="visible = false"
             ><v-icon>close</v-icon></v-app-bar-nav-icon

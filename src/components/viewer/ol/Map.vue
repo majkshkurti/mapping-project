@@ -10,48 +10,6 @@
       <full-screen />
     </div>
 
-    <!-- Popup overlay  -->
-    <overlay-popup
-      :title="
-        popup.activeFeature
-          ? popup.activeFeature.get('category') ||
-            popup.activeFeature.get('title')
-            ? popup.activeFeature.get('category') ||
-              popup.activeFeature.get('title')
-            : popup.activeLayer
-            ? popup.activeLayer.get('name')
-            : ''
-          : ''
-      "
-      v-show="popup.isVisible"
-      ref="popup"
-    >
-      <v-btn icon>
-        <v-icon>close</v-icon>
-      </v-btn>
-      <template v-slot:close>
-        <v-btn @click="closePopup()" icon>
-          <v-icon>close</v-icon>
-        </v-btn>
-      </template>
-      <template v-slot:body>
-        <vue-scroll ref="vs">
-          <div style="max-height:280px;" class="pr-2">
-            <div class="body-2" v-for="item in popupInfo" :key="item.property">
-              <span
-                v-if="isPopupRowVisible(item)"
-                v-html="
-                  `<strong>${mapPopupPropName(
-                    item,
-                    popup.activeLayer
-                  )}: </strong>` + item.value
-                "
-              ></span>
-            </div>
-          </div>
-        </vue-scroll>
-      </template>
-    </overlay-popup>
 
     <!-- Progress loader -->
     <progress-loader
@@ -71,12 +29,6 @@ import Vue from 'vue';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import Overlay from 'ol/Overlay';
-import VectorSource from 'ol/source/Vector';
-import VectorLayer from 'ol/layer/Vector';
-
-// style imports
-import { popupInfoStyle } from '../../../style/OlStyleDefs';
-
 // import the app-wide EventBus
 import { EventBus } from '../../../EventBus';
 
@@ -89,7 +41,6 @@ import { mapMutations, mapGetters } from 'vuex';
 import { mapFields } from 'vuex-map-fields';
 
 // Map Controls
-import OverlayPopup from './controls/Overlay';
 import ZoomControl from './controls/ZoomControl';
 import FullScreen from './controls/FullScreen';
 import Legend from './controls/Legend';
@@ -113,11 +64,10 @@ import proj4 from 'proj4';
 import { register } from 'ol/proj/proj4';
 import { get as getProjection } from 'ol/proj';
 
-import { gdpStyle } from '../../../style/OlStyleDefs';
+import { mainStyle } from '../../../style/OlStyleDefs';
 
 export default {
   components: {
-    'overlay-popup': OverlayPopup,
     'map-legend': Legend,
     'zoom-control': ZoomControl,
     'full-screen': FullScreen,
@@ -166,13 +116,8 @@ export default {
       me.map.updateSize();
       // adjust the bg color of the OL buttons (like zoom, rotate north, ...)
       me.setOlButtonColor();
-      // Get Info
-      me.setupMapClick();
       // Pointer Move
       me.setupMapPointerMove();
-      // Move end event
-      // Create popup overlay for get info
-      me.createPopupOverlay();
     }, 200);
   },
   created() {
@@ -221,34 +166,16 @@ export default {
     createLayers() {
       const me = this;
       // Get Info layer
-      me.createGetInfoLayer();
       this.$appConfig.map.layers.forEach(lConf => {
         const layer = LayerFactory.getInstance(lConf);
 
         me.setLayer(layer);
-        if (layer.get('name') === 'gdp') {
-          console.log(gdpStyle);
-          layer.setStyle(gdpStyle);
+        if (layer.get('name') === 'countries') {
+          layer.setStyle(mainStyle);
         }
       });
     },
-    /**
-     * Creates a layer to visualize selected GetInfo features.
-     */
-    createGetInfoLayer() {
-      // For Vector selection
-      const source = new VectorSource({
-        wrapX: false
-      });
-      const vector = new VectorLayer({
-        name: 'Get Info Layer',
-        zIndex: 3000,
-        source: source,
-        style: popupInfoStyle()
-      });
-      this.popup.highlightLayer = vector;
-      this.map.addLayer(vector);
-    },
+  
 
     /**
      * Sets the background color of the OL buttons to the color property.
@@ -296,124 +223,9 @@ export default {
       }
     },
 
-    /**
-     * Show popup for the get info module.
-     */
-    createPopupOverlay() {
-      const me = this;
-      me.popup.popupOverlay = new Overlay({
-        element: me.$refs.popup.$el,
-        autoPan: false,
-        autoPanMargin: 40,
-        autoPanAnimation: {
-          duration: 250
-        }
-      });
-      me.map.addOverlay(me.popup.popupOverlay);
-    },
 
-    /**
-     * Closes the popup if user click X button.
-     */
-    closePopup() {
-      const me = this;
-      if (me.popup.popupOverlay) {
-        me.popup.popupOverlay.setPosition(undefined);
-        me.popup.isVisible = false;
-      }
 
-      // Clear highligh feature (Don't clear if a corporate network entity is selected)
-      if (me.popup.highlightLayer) {
-        this.popup.highlightLayer.getSource().clear();
-      }
 
-      me.popup.showInSidePanel = false;
-    },
-
-    /**
-     * Show getInfo popup.
-     */
-    showPopup(clickCoord) {
-      let position = this.popup.activeFeature.getGeometry().getCoordinates();
-      // Correct popup position (used feature coordinates insteaad of mouse)
-      let closestPoint;
-      // Closest point doesn't work with vector tile layers.
-      if (position) {
-        closestPoint = this.popup.activeFeature
-          .getGeometry()
-          .getClosestPoint(clickCoord);
-      } else {
-        closestPoint = clickCoord;
-      }
-      this.map.getView().animate({
-        center: closestPoint,
-        duration: 400
-      });
-      this.popup.popupOverlay.setPosition(closestPoint);
-      this.popup.isVisible = true;
-      this.popup.title = 'Info';
-    },
-    /**
-     * Zooms to feature, add a cloned feature to the highlight layer and set the position of popup undefined
-     * move the popup content to sidepanel and replace legend with feature image if exist.
-     *
-     */
-    zoomToFeature() {
-      const geometry = this.popup.activeFeature.getGeometry();
-      this.popup.highlightLayer.getSource().clear();
-      const clonedFeature = this.popup.activeFeature.clone();
-      clonedFeature.set('isClone', true);
-      if (['Point', 'MultiPoint'].includes(geometry.getType())) {
-        const layerStyle = this.popup.activeLayer.getStyle();
-        clonedFeature.setStyle(feature => {
-          const styles = [];
-          const popupInfoStyleObj = popupInfoStyle()(feature);
-          if (Array.isArray(popupInfoStyleObj)) {
-            styles.push(...popupInfoStyleObj);
-          } else {
-            styles.push(popupInfoStyleObj);
-          }
-          if (layerStyle instanceof Function) {
-            const layerStyleObj = layerStyle(feature);
-            if (Array.isArray(layerStyleObj)) {
-              layerStyleObj.forEach(style => {
-                if (style.setZIndex) {
-                  style.setZIndex(2000);
-                }
-              });
-              styles.push(...layerStyleObj);
-            } else {
-              if (layerStyleObj.setZIndex) {
-                layerStyleObj.setZIndex(2000);
-              }
-              styles.push(layerStyleObj);
-            }
-          } else if (Array.isArray(layerStyle)) {
-            styles.push(...layerStyle);
-          } else {
-            styles.push(layerStyle);
-          }
-          return styles;
-        });
-      }
-      this.popup.highlightLayer.getSource().addFeature(clonedFeature);
-      if (!['Point', 'MultiPoint'].includes(geometry.getType())) {
-        // Zoom to extent adding a padding to the extent
-        this.previousMapPosition = {
-          center: this.map.getView().getCenter(),
-          zoom: this.map.getView().getZoom()
-        };
-
-        this.map.getView().fit(geometry.getExtent(), {
-          padding: [100, 100, 100, 100],
-          duration: 800
-        });
-      }
-
-      // Close popup
-      this.popup.popupOverlay.setPosition(undefined);
-      this.popup.showInSidePanel = true;
-    },
 
     /**
      * Map pointer move event .
@@ -460,11 +272,6 @@ export default {
           this.overlay.setPosition(undefined);
         } else {
           if (!feature) return;
-          if (
-            this.popup.activeFeature &&
-            this.popup.activeFeature.getId() === `clone.${feature.getId()}`
-          )
-            return;
           const topic = this.topics[this.activeTopic];
           const fieldName = `${topic.field}_${this.currentYear}`;
           const attr = feature.get(fieldName);
@@ -481,9 +288,16 @@ export default {
             hoverTextColor && overlayEl
               ? (overlayEl.style.color = hoverTextColor)
               : (overlayEl.style.color = '');
-          }
+          } 
 
-          overlayEl.innerHTML = `${topic.title}: ${attr}%, ${feature.get('name')}`;
+          const countryName = feature.get('name').toUpperCase();
+          let topicValue = ""
+          const currentTimeObject = this.csvData[topic.name].timeGrouped[this.currentTime]
+          if (currentTimeObject[countryName]) {
+            topicValue = currentTimeObject[countryName]
+          }
+          
+          overlayEl.innerHTML = `${topic.title}: ${topicValue}%, ${countryName}`;
           this.overlay.setPosition(evt.coordinate);
         }
 
@@ -496,72 +310,6 @@ export default {
       });
     },
 
-    /**
-     * Map click event for Module.
-     */
-    setupMapClick() {
-      const me = this;
-      const map = me.map;
-
-      me.mapClickListenerKey = map.on('click', async evt => {
-        if (me.activeInteractions.length > 0) {
-          return;
-        }
-
-        let feature, layer;
-        this.map.forEachFeatureAtPixel(
-          evt.pixel,
-          (f, l) => {
-            // Order of features is based is based on zIndex.
-            // First feature is on top, last feature is on bottom.
-            if (f && f.get('isClone')) {
-              return false;
-            }
-            if (
-              !feature &&
-              l.get('isInteractive') !== false &&
-              l.get('queryable') !== false
-            ) {
-              feature = f;
-              layer = l;
-            }
-          },
-          {
-            hitTolerance: 3
-          }
-        );
-        // Check if layer is interactive
-        if (
-          (layer && layer.get('isInteractive') === false) ||
-          (layer && layer.get('queryable') === false)
-        )
-          return;
-
-        this.popup.activeLayer = layer;
-
-        if (feature) {
-          // Check if feature has lightbox array of images
-          this.previousMapPosition = null;
-          this.popup.activeFeature = feature.clone ? feature.clone() : feature;
-
-          if (feature.getId()) {
-            this.popup.activeFeature.setId(`clone.${feature.getId()}`);
-          }
-          this.zoomToFeature();
-        }
-      });
-    },
-    isPopupRowVisible(item) {
-      if (!['null', '---'].includes(item.value)) {
-        return (
-          this.popup.diveVisibleProps.includes(item.property) &&
-          !this.hiddenProps.includes(item.property)
-        );
-      } else {
-        return false;
-      }
-    },
-
     ...mapMutations('map', {
       setMap: 'SET_MAP',
       setLayer: 'SET_LAYER',
@@ -571,7 +319,8 @@ export default {
   },
   computed: {
     ...mapGetters('map', {
-      popupInfo: 'popupInfo'
+      currentTime: 'currentTime',
+      csvData: 'csvData'
     }),
     ...mapFields('map', {
       previousMapPosition: 'previousMapPosition',

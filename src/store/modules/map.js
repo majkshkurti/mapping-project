@@ -1,5 +1,4 @@
 import { getField, updateField } from 'vuex-map-fields';
-import { formatPopupRows } from '../../utils/Layer';
 
 const state = {
   map: null,
@@ -30,31 +29,12 @@ const state = {
       timeout: 2000
     }
   },
-  popup: {
-    highlightLayer: null,
-    worldExtentLayer: null,
-    highlightVectorTileLayer: null,
-    selectedCorpNetworkLayer: null,
-    popupOverlay: null,
-    title: 'Info',
-    isVisible: false,
-    activeFeature: null,
-    activeLayer: null,
-    exludedProps: [
-      'id',
-      'geometry',
-      'geom',
-      'orgin_geometry',
-      'osm_id',
-      'gid',
-      'layerName'
-    ],
-    diveVisibleProps: ['title', 'entitiy'],
-    showInSidePanel: false
-  },
   layers: {}, // Only for operational layers
   colorMapEntities: {},
-  csvData: []
+  csvData: {},
+  currentTimeIndex: 0,
+  isPlaying: false,
+  timeInterval: null
 };
 
 const actions = {};
@@ -66,16 +46,20 @@ const getters = {
   layers: state => state.layers,
   messages: state => state.messages,
   snackbar: state => state.messages.snackbar,
-  popup: state => state.popup,
-  popupInfo: state => {
-    const feature = state.popup.activeFeature;
-    if (!feature) return;
-    return formatPopupRows(feature, state.popup.exludedProps);
+  currentTime: state => {
+    const activeTopic = state.activeTopic;
+    const topicName = state.topics[activeTopic].name;
+    const topic = state.csvData[topicName];
+    if (!topic) return ''
+    const currentTimeIndex = state.currentTimeIndex;
+    const time = Object.keys(topic.timeGrouped)[currentTimeIndex];
+    return time;
   },
   persistentLayers: state => state.persistentLayers,
   postEditLayer: state => state.postEditLayer,
   lastSelectedLayer: state => state.lastSelectedLayer,
   csvData: state => state.csvData,
+  currentTimeIndex: state => state.currentTimeIndex,
   getField
 };
 

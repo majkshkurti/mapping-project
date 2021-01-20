@@ -1,7 +1,7 @@
 {
   "title": "Time to change",
   "baseColor": "red darken-3",
-  "controlsColor": "#dc143c",
+  "controlsColor": "#00000e",
   "map": {
     "projectionCode": "EPSG:3857",
     "minZoom": 1,
@@ -42,10 +42,10 @@
         "visible": true,
         "attributions": "© <a href='https://www.mapbox.com/map-feedback/'>Mapbox</a> © <a href='https://www.openstreetmap.org/copyright'> OpenStreetMap contributors</a>"
       },
-       {
+      {
         "type": "VECTOR",
-        "name": "gdp",
-        "url": "./static/gdp.geojson",
+        "name": "countries",
+        "url": "./static/countries.geojson",
         "queryable": true,
         "displayInLegend": true,
         "legendUrl": "./images/gdp.PNG",

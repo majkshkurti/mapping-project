@@ -3,20 +3,23 @@ import OlStroke from 'ol/style/Stroke';
 import OlFill from 'ol/style/Fill';
 import OlCircle from 'ol/style/Circle';
 import colormap from 'colormap';
+import { getInterpolatedColor } from '../utils/Helpers';
+import store from '../store/modules/map';
 
-let strokeColor = 'rgba(236, 236, 236, 0.7)';
-let fillColor = 'rgba(255,0,0, 0.2)';
-let imageColor = 'blue';
-let radiusHighlightColor = 'rgba(0,0,255,0.3)';
-let zIndex = 100;
 
 const steps = 50;
 const ramp = colormap({
-  colormap: 'blackbody',
-  nshades: steps
+  colormap: 'jet',
+  nshades: steps,
+  format: 'rgbaString'
 });
 
-console.log(ramp);
+console.log(ramp.reverse());
+const colors = {};
+ramp.forEach((color, index) => {
+  colors[index] = color;
+});
+console.log(colors);
 
 export function defaultStyle(feature) {
   const geomType = feature.getGeometry().getType();
@@ -42,51 +45,25 @@ export function defaultStyle(feature) {
   return [style];
 }
 
-export function gdpStyle(feature) {
-  // -25, -20 =>  #9e0e0e
-  // - 20, -15 => #ca0020
-  // -15, -10 => #fd1f1f
-  // -10, -5 => #f75b5b
-  // -5, 0 =>
-  // 0, 5 =>  #1bff67
-  const gdp = feature.get('GDP_2020');
-
-  if (gdp > -25 && gdp < -20) {
+export function mainStyle(feature) {
+  const activeTopic = store.state.activeTopic;
+  const topicName = store.state.topics[activeTopic].name;
+  const topic = store.state.csvData[topicName];
+  const currentTimeIndex = store.state.currentTimeIndex;
+  if (!topic) return []
+  const time = Object.keys(topic.timeGrouped)[currentTimeIndex];
+  const name = feature.get('name') ? feature.get('name').toUpperCase() : null;
+  const value = topic.timeGrouped[time][name]
+  if (!value) return []
+  const color = getInterpolatedColor(topic.min, topic.max, parseInt(value), colors);
+  if (value) {
     return new OlStyle({
       fill: new OlFill({
-        color: '#9e0e0e' // semi-transparent red
+        color: color // semi-transparent red
       })
     });
-  } else if (gdp > -20 && gdp < -15) {
-    return new OlStyle({
-      fill: new OlFill({
-        color: '#ca0020' // semi-transparent red
-      })
-    });
-  } else if (gdp > -15 && gdp < -10) {
-    return new OlStyle({
-      fill: new OlFill({
-        color: '#fd1f1f' // semi-transparent red
-      })
-    });
-  } else if (gdp > -10 && gdp < -5) {
-    return new OlStyle({
-      fill: new OlFill({
-        color: '#f75b5b' // semi-transparent red
-      })
-    });
-  } else if (gdp > 0 && gdp < 5) {
-    return new OlStyle({
-      fill: new OlFill({
-        color: '#1bff67' // semi-transparent red
-      })
-    });
-  } else if (gdp > 5 && gdp < 30) {
-    return new OlStyle({
-      fill: new OlFill({
-        color: '#007810' // semi-transparent red
-      })
-    });
+  } else {
+    return [];
   }
 }
 
@@ -110,46 +87,7 @@ export function getFeatureHighlightStyle() {
   ];
 }
 
-/**
- * Style used for popup selected feature highlight
- */
 
-export function popupInfoStyle() {
-  // MAJK: PopupInfo layer style (used for highlight)
-  const styleFunction = () => {
-    const styles = [];
-    styles.push(
-      new OlStyle({
-        stroke: new OlStroke({
-          color: strokeColor,
-          width: 20
-        }),
-        zIndex: zIndex
-      })
-    );
-    styles.push(
-      new OlStyle({
-        fill: new OlFill({
-          color: fillColor
-        }),
-        stroke: new OlStroke({
-          color: imageColor,
-          width: 4
-        }),
-        image: new OlCircle({
-          radius: 25,
-          fill: new OlFill({
-            color: radiusHighlightColor
-          })
-        }),
-        zIndex: zIndex
-      })
-    );
-
-    return styles;
-  };
-  return styleFunction;
-}
 
 export const baseStyleDefs = {
   boundaryStyle: () => {

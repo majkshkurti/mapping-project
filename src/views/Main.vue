@@ -14,7 +14,7 @@
       </v-navigation-drawer>
     </v-expand-transition>
 
-    <v-app-bar app clipped-right height="60" color="#dc143c" dark>
+    <v-app-bar app clipped-right height="60" color="#00000e" dark>
       <!-- <v-img contain src="/public/icons/covid_19.png"></v-img>  TODO: Use this image. -->
       <v-icon large class="mr-2">fas fa-virus</v-icon>
 
@@ -30,7 +30,7 @@
           class="mx-10"
           :dark="index === activeTopic ? false : true"
           @click="setActiveTopic(index)"
-          :color="index === activeTopic ? 'white' : '#E44C6B'"
+          :color="index === activeTopic ? 'white' : '#00000'"
           :class="{
             'elevation-0': index !== activeTopic,
             'font-weight-bold black--text': index === activeTopic,
@@ -99,22 +99,43 @@ export default {
       setActiveTopic: 'SET_ACTIVE_TOPIC'
     }),
     fetchCsvData() {
-      const topic = this.topics[this.activeTopic].name;
-      if (!this.csvData[topic]) {
-        Papa.parse(`./static/${topic}.csv`, {
-          download: true,
-          header: true,
-          skipEmptyLines: true,
-          complete: results => {
-            if (Object.keys(results.data[0]).length === 3) {
-              const reshapedData = reshapeData(results.data);
-              console.log(reshapedData);
-              this.csvData[topic] = reshapedData;
-              console.log(this.csvData);
+      this.topics.forEach(topicObj => {
+        const topic = topicObj.name;
+        if (!this.csvData[topic]) {
+          Papa.parse(`./static/${topic}.csv`, {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            complete: results => {
+              if (Object.keys(results.data[0]).length === 3) {
+                let minValue = 0;
+                let maxValue = 0;
+                let timeGrouped = {}
+                const reshapedData = reshapeData(results.data);
+                results.data.forEach(item => {
+                  const value = parseInt(item[topic]);
+                  if (value <= minValue) {
+                    minValue = value;
+                  }
+                  if (value >= maxValue) {
+                    maxValue = value;
+                  }
+                });
+
+                reshapedData.forEach(data => {
+                  timeGrouped[data.date] = data
+                });
+                this.csvData[topic] = {
+                  timeGrouped: timeGrouped,
+                  values: reshapedData,
+                  min: minValue,
+                  max: maxValue
+                };
+              }
             }
-          }
-        });
-      }
+          });
+        }
+      });
     }
   },
   created() {

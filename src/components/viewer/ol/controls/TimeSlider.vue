@@ -5,7 +5,7 @@
       small
       fab
       dark
-      color="#dc143c"
+      color="#00000e"
       @click="togglePlay"
     >
       <v-icon large>{{ isPlaying ? 'stop' : 'play_arrow' }}</v-icon>
@@ -13,55 +13,62 @@
     <v-slider
       style="background-color:white;border-radius: 20px;z-index:3;width:300px;"
       class="px-2 timeslider"
-      v-model="current"
+      v-model="currentTimeIndex"
       step="1"
       hide-details="auto"
-      :max="Object.keys(time[activeTopic]).length - 1"
+      :max="
+        this.csvData[this.topicName]
+          ? Object.keys(this.csvData[this.topicName].timeGrouped).length - 1
+          : 1
+      "
       min="0"
       ticks
     ></v-slider>
-    <v-chip class="ma-2 play" color="#dc143c" text-color="white">
-      {{ getYear }}
+    <v-chip class="ma-2 play" color="#00000e" text-color="white">
+      {{
+        this.csvData[this.topicName]
+          ? Object.keys(this.csvData[this.topicName].timeGrouped)[
+              currentTimeIndex
+            ]
+          : ''
+      }}
     </v-chip>
   </v-row>
 </template>
 <script>
 import { mapGetters } from 'vuex';
+import { mapFields } from 'vuex-map-fields';
+
 import { EventBus } from '../../../../EventBus';
 
 export default {
   name: 'play',
-  data: () => ({
-    isPlaying: false,
-    current: 0,
-    timeInterval: null,
-    time: {
-      0: {
-        UNEMP_2019: '2019',
-        UNEMP_2020: '2020',
-        UNEMP_2021: '2021'
-      },
-      1: {
-        GDP_19_Q1: 'Q1 2019',
-        GDP_19_Q2: 'Q2 2019',
-        GDP_19_Q3: 'Q3 2019',
-        GDP_19_Q4: 'Q4 2019',
-        GDP_20_Q1: 'Q1 2020',
-        GDP_20_Q2: 'Q2 2020',
-        GDP_20_Q3: 'Q3 2020',
-        GDP_20_Q4: 'Q4 2020',
-        GDP_21_Q1: 'Q1 2021',
-        GDP_21_Q2: 'Q2 2021'
-      },
-      2: {}
-    }
-  }),
+  data: () => ({}),
   computed: {
-    ...mapGetters('map', { activeTopic: 'activeTopic' }),
+    ...mapGetters('map', {
+      activeTopic: 'activeTopic',
+      topics: 'topics',
+      csvData: 'csvData',
+      layers: 'layers'
+    }),
+    ...mapFields('map', {
+      currentTimeIndex: 'currentTimeIndex',
+      isPlaying: 'isPlaying',
+      timeInterval: 'timeInterval'
+    }),
     getYear() {
-      const keys = Object.keys(this.time[this.activeTopic]);
-      const currentKey = this.time[this.activeTopic][keys[this.current]];
-      return currentKey;
+      const currentTime = Object.keys(this.times)[this.currentTimeIndex];
+      console.log(currentTime);
+      return currentTime;
+    },
+    topicName() {
+      return this.topics[this.activeTopic].name;
+    }
+  },
+  watch: {
+    currentTimeIndex() {
+      console.log("changed..")
+      this.layers['countries'].changed();
     }
   },
   methods: {
@@ -74,20 +81,23 @@ export default {
     },
     startPlaying() {
       this.isPlaying = true;
-      const keys = Object.keys(this.time[this.activeTopic]);
+      console.log(this.csvData);
+      const times = this.csvData[this.topicName].timeGrouped;
+      const keys = Object.keys(times);
       this.timeInterval = setInterval(() => {
-        if (this.current < keys.length - 1) {
-          this.current += 1;
+        if (this.currentTimeIndex < keys.length - 1) {
+          this.currentTimeIndex += 1;
         } else {
-          this.current = 0;
+          this.currentTimeIndex = 0;
         }
-      }, 1000);
+      }, 500);
       EventBus.$emit('play');
     },
     stopPlaying() {
       this.isPlaying = false;
       clearInterval(this.timeInterval);
       EventBus.$emit('stop');
+      this.layers['countries'].changed();
     }
   }
 };

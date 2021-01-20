@@ -1,5 +1,3 @@
-import _groupBy from 'lodash/groupBy';
-
 export function humanize(str) {
   return str
     .replace(/^[\s_]+|[\s_]+$/g, '')
@@ -90,17 +88,15 @@ export function debounce(fn, delay) {
 export function reshapeData(data) {
   // groupby dates (first column)
   let column_names = new Set(data.map(x => x[Object.keys(x)[1]]));
-  const grouped_by_date = _groupBy(data, e => e[Object.keys(e)[0]]);
-  return Object.keys(grouped_by_date)
-    .sort()
-    .map(k => {
-      const item = { date: k };
-      column_names.forEach(n => (item[n] = 0));
-      grouped_by_date[k].forEach(
-        e => (item[e[Object.keys(e)[1]]] = e[Object.keys(e)[2]])
-      );
-      return item;
-    });
+  const grouped_by_date = groupBy(data, 'date');
+  return Object.keys(grouped_by_date).map(k => {
+    const item = { date: k };
+    column_names.forEach(n => (item[n] = 0));
+    grouped_by_date[k].forEach(
+      e => (item[e[Object.keys(e)[1]]] = e[Object.keys(e)[2]])
+    );
+    return item;
+  });
 }
 
 export function getCurrentDate() {
@@ -150,4 +146,77 @@ export function rgbArrayToHex(rgb) {
 // https://github.com/vuetifyjs/vuetify/blob/master/packages/vuetify/src/mixins/colorable.ts
 export function isCssColor(color) {
   return !!color && !!color.match(/^(#|(rgb|hsl)a?\()/);
+}
+
+// Returns two closest values from the array. If value exist undefined is returned
+export function getClosest(a, x) {
+  var min = Math.min.apply(null, a),
+    max = Math.max.apply(null, a),
+    i,
+    len;
+
+  if (x < min) {
+    // if x is lower than the lowest value
+    return min;
+  } else if (x > max) {
+    // if x is greater than the 'greatest' value
+    return max;
+  }
+  a.sort();
+  for (i = 0, len = a.length; i < len; i++) {
+    if (x > a[i] && x < a[i + 1]) {
+      return [a[i], a[i + 1]];
+    }
+  }
+}
+
+// Returns a single rgb color interpolation between given rgb color
+// based on the factor given; via https://codepen.io/njmcode/pen/axoyD?editors=0010
+export function interpolateColor(color1, color2, factor) {
+  if (arguments.length < 3) {
+    factor = 0.5;
+  }
+  color1 = color1.match(/\d+/g).map(Number);
+  color2 = color2.match(/\d+/g).map(Number);
+  var result = color1.slice();
+  for (var i = 0; i < 3; i++) {
+    result[i] = Math.round(result[i] + factor * (color2[i] - color1[i]));
+  }
+  return `rgb(${result.toString()})`;
+}
+
+export function linearInterpolation(x1, x2, y1, y2, x) {
+  return (x - x1) * ((y2 - y1) / (x2 - x1)) + y1;
+}
+
+export function getInterpolatedColor(lowestValue, highestValue, value, color) {
+  const colorKeys = Object.keys(color).map(n => parseInt(n, 10));
+  //====//
+  // x1 lowest step value TODO: get this dynamically from the options
+  // x2 highest step value  TODO: get this dynamically from the options
+  // y1 lowest color key code
+  // y2 highest color key code
+  // x current step value
+  // Interpolates step values down to color key length
+  const interpolatedValue = linearInterpolation(
+    lowestValue,
+    highestValue,
+    colorKeys[0],
+    [...colorKeys].pop(),
+    value // isochrone step or cost
+  );
+  let interpolatedColor;
+  // Find if the interpolated value exists in colors key, if not find two closest values.
+  if (colorKeys.includes(interpolatedValue)) {
+    // No interpolation
+    interpolatedColor = color[interpolatedValue];
+  } else {
+    // Interpolate using factor
+    const closestKeys = getClosest(colorKeys, interpolatedValue); //ex [3,4] color object keys
+    const lowerColor = color[closestKeys[0]];
+    const upperColor = color[closestKeys[1]];
+    const factor = interpolatedValue - closestKeys[0]; // factor goes from 0 => 1
+    interpolatedColor = interpolateColor(lowerColor, upperColor, factor);
+  }
+  return interpolatedColor;
 }

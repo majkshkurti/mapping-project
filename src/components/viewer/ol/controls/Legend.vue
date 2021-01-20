@@ -6,7 +6,7 @@
           v-on="on"
           style="position:fixed;left:16px;bottom:40px;z-index:1000;"
           v-show="!isVisible"
-          color="#dc143c"
+          color="#00000e"
           @click="toggleLegend"
           fab
           small
@@ -31,7 +31,7 @@
         text
         min-width="30px"
         x-small
-        style="z-index:100;background-color:rgb(228, 76, 107);position:absolute;bottom:30px;right:-19px;"
+        style="z-index:100;background-color:#00000e;position:absolute;bottom:30px;right:-19px;"
       >
         <v-icon class="ml-0" x-small>fas fa-chevron-up</v-icon></v-btn
       >
