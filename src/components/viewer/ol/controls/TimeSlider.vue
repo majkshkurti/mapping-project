@@ -24,14 +24,12 @@
       min="0"
       ticks
     ></v-slider>
-    <v-chip class="ma-2 play" color="#00000e" text-color="white">
-      {{
-        this.csvData[this.topicName]
-          ? Object.keys(this.csvData[this.topicName].timeGrouped)[
-              currentTimeIndex
-            ]
-          : ''
-      }}
+    <v-chip
+      v-if="currentTime"
+      class="ma-2 play"
+      color="#00000e"
+      text-color="white"
+      >{{ currentTime }}
     </v-chip>
   </v-row>
 </template>
@@ -45,29 +43,24 @@ export default {
   name: 'play',
   data: () => ({}),
   computed: {
-    ...mapGetters('map', {
-      activeTopic: 'activeTopic',
-      topics: 'topics',
-      csvData: 'csvData',
-      layers: 'layers'
-    }),
+    ...mapGetters('map', [
+      'activeTopic',
+      'topics',
+      'csvData',
+      'layers',
+      'currentTime'
+    ]),
     ...mapFields('map', {
       currentTimeIndex: 'currentTimeIndex',
       isPlaying: 'isPlaying',
       timeInterval: 'timeInterval'
     }),
-    getYear() {
-      const currentTime = Object.keys(this.times)[this.currentTimeIndex];
-      console.log(currentTime);
-      return currentTime;
-    },
     topicName() {
       return this.topics[this.activeTopic].name;
     }
   },
   watch: {
     currentTimeIndex() {
-      console.log("changed..")
       this.layers['countries'].changed();
     }
   },

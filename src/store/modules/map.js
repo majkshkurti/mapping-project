@@ -32,7 +32,7 @@ const state = {
   layers: {}, // Only for operational layers
   colorMapEntities: {},
   csvData: {},
-  currentTimeIndex: 0,
+  currentTimeIndex: null,
   isPlaying: false,
   timeInterval: null
 };
@@ -50,9 +50,10 @@ const getters = {
     const activeTopic = state.activeTopic;
     const topicName = state.topics[activeTopic].name;
     const topic = state.csvData[topicName];
-    if (!topic) return ''
+    if (!topic) return '';
     const currentTimeIndex = state.currentTimeIndex;
     const time = Object.keys(topic.timeGrouped)[currentTimeIndex];
+    console.log(time);
     return time;
   },
   persistentLayers: state => state.persistentLayers,
@@ -86,6 +87,9 @@ const mutations = {
   },
   SET_MAP(state, map) {
     state.map = map;
+  },
+  SET_CURRENT_TIME_INDEX(state, index) {
+    this.currentTimeIndex = index;
   },
   updateField
 };

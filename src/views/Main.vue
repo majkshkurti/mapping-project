@@ -72,8 +72,12 @@ export default {
       topics: 'topics',
       activeTopic: 'activeTopic'
     }),
+    ...mapMutations('map', {
+      setCurrentTimeIndex: 'SET_CURRENT_TIME_INDEX'
+    }),
     ...mapFields('map', {
-      csvData: 'csvData'
+      csvData: 'csvData',
+      currentTimeIndex: 'currentTimeIndex'
     })
   },
   components: {
@@ -110,7 +114,7 @@ export default {
               if (Object.keys(results.data[0]).length === 3) {
                 let minValue = 0;
                 let maxValue = 0;
-                let timeGrouped = {}
+                let timeGrouped = {};
                 const reshapedData = reshapeData(results.data);
                 results.data.forEach(item => {
                   const value = parseInt(item[topic]);
@@ -123,14 +127,14 @@ export default {
                 });
 
                 reshapedData.forEach(data => {
-                  timeGrouped[data.date] = data
+                  timeGrouped[data.date] = data;
                 });
-                this.csvData[topic] = {
+                this.$set(this.csvData, topic, {
                   timeGrouped: timeGrouped,
                   values: reshapedData,
                   min: minValue,
                   max: maxValue
-                };
+                });
               }
             }
           });

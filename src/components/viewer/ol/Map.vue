@@ -10,7 +10,6 @@
       <full-screen />
     </div>
 
-
     <!-- Progress loader -->
     <progress-loader
       :value="progressLoading.value"
@@ -62,7 +61,6 @@ import Snackbar from '../../core/Snackbar';
 
 import proj4 from 'proj4';
 import { register } from 'ol/proj/proj4';
-import { get as getProjection } from 'ol/proj';
 
 import { mainStyle } from '../../../style/OlStyleDefs';
 
@@ -135,9 +133,7 @@ export default {
       '+proj=robin +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs'
     );
     register(proj4);
-    const mapProjection = getProjection('EPSG:54030');
-    const projExtent = mapProjection.getExtent();
-    console.log(projExtent);
+
     me.map = new Map({
       layers: [],
       interactions: defaultInteractions({
@@ -175,7 +171,6 @@ export default {
         }
       });
     },
-  
 
     /**
      * Sets the background color of the OL buttons to the color property.
@@ -222,10 +217,6 @@ export default {
         }
       }
     },
-
-
-
-
 
     /**
      * Map pointer move event .
@@ -288,15 +279,19 @@ export default {
             hoverTextColor && overlayEl
               ? (overlayEl.style.color = hoverTextColor)
               : (overlayEl.style.color = '');
-          } 
+          }
 
           const countryName = feature.get('name').toUpperCase();
-          let topicValue = ""
-          const currentTimeObject = this.csvData[topic.name].timeGrouped[this.currentTime]
+          let topicValue = '';
+          console.log(this.currentTime);
+          if (!this.currentTime) return;
+          const currentTimeObject = this.csvData[topic.name].timeGrouped[
+            this.currentTime
+          ];
           if (currentTimeObject[countryName]) {
-            topicValue = currentTimeObject[countryName]
+            topicValue = currentTimeObject[countryName];
           }
-          
+
           overlayEl.innerHTML = `${topic.title}: ${topicValue}%, ${countryName}`;
           this.overlay.setPosition(evt.coordinate);
         }
@@ -318,22 +313,14 @@ export default {
     })
   },
   computed: {
-    ...mapGetters('map', {
-      currentTime: 'currentTime',
-      csvData: 'csvData'
-    }),
+    ...mapGetters('map', ['currentTime', 'csvData']),
     ...mapFields('map', {
       previousMapPosition: 'previousMapPosition',
       popup: 'popup',
       activeTopic: 'activeTopic',
       currentYear: 'currentYear',
       topics: 'topics'
-    }),
-
-    hiddenProps() {
-      const hiddenProps = this.$appConfig.map.featureInfoHiddenProps;
-      return hiddenProps || [];
-    }
+    })
   },
   watch: {
     activeInteractions() {
