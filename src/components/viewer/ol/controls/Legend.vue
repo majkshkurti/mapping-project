@@ -21,8 +21,8 @@
       v-model="panel"
       v-show="isVisible"
       class="elevation-3"
-      :width="isVisible ? '250px' : '0px'"
-      style="position:absolute;left:25px;bottom:20px;max-width:200px;opacity:85%;"
+      :width="isVisible ? '100%' : '0px'"
+      style="position:absolute;left:25px;bottom:20px;max-width:500px;opacity:85%;"
     >
       <v-btn
         v-show="isVisible"
@@ -41,7 +41,7 @@
           v-if="isVisible"
           style="max-height:400px;min-height:30px;"
         >
-          <vue-scroll>
+       
             <template v-for="(item, index) in layers">
               <div
                 :key="index"
@@ -57,8 +57,6 @@
                   }}
                 </p>
 
-                <v-divider></v-divider>
-
                 <!-- For vector layer like network , ppf or other edit layers.  -->
                 <div v-if="item.get('legendUrl')">
                   <img
@@ -69,7 +67,7 @@
                 </div>
               </div>
             </template>
-          </vue-scroll>
+          
         </v-expansion-panel-content>
       </v-expansion-panel>
     </v-expansion-panels>

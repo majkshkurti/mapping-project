@@ -48,7 +48,7 @@
         "url": "./static/countries.geojson",
         "queryable": true,
         "displayInLegend": true,
-        "legendUrl": "./images/gdp.PNG",
+        "legendUrl": "./images/gdp.jpg",
         "legendDisplayName": "GDP",
         "isInteractive": true,
         "format": "GeoJSON",
