@@ -53,7 +53,8 @@ export default {
     ...mapFields('map', {
       currentTimeIndex: 'currentTimeIndex',
       isPlaying: 'isPlaying',
-      timeInterval: 'timeInterval'
+      timeInterval: 'timeInterval',
+      activeTopic: 'activeTopic'
     }),
     topicName() {
       return this.topics[this.activeTopic].name;
@@ -62,6 +63,10 @@ export default {
   watch: {
     currentTimeIndex() {
       this.layers['countries'].changed();
+    },
+    activeTopic() {
+      this.stopPlaying();
+      this.currentTimeIndex = 0
     }
   },
   methods: {
@@ -74,7 +79,6 @@ export default {
     },
     startPlaying() {
       this.isPlaying = true;
-      console.log(this.csvData);
       const times = this.csvData[this.topicName].timeGrouped;
       const keys = Object.keys(times);
       this.timeInterval = setInterval(() => {

@@ -12,8 +12,9 @@ export default {
   data() {
     return {
       isIframeLoading: true,
+      duration: 20,
       top_n: 10, // Number of bars
-      tickDuration: 1000
+      tickDuration: 500
     };
   },
   computed: {
@@ -21,7 +22,8 @@ export default {
       map: 'map',
       csvData: 'csvData',
       topics: 'topics',
-      activeTopic: 'activeTopic'
+      activeTopic: 'activeTopic',
+      colors: 'colors'
     }),
     ...mapGetters('app', {
       sidebarHtml: 'sidebarHtml',
@@ -34,10 +36,10 @@ export default {
   },
   methods: {
     startChartRace() {
-      console.log('executed...');
       var self = this;
       const topic = self.topics[0].name;
-      const csv_data = self.csvData[topic];
+      const csv_data = self.csvData[topic].values;
+
       if (self.interval) {
         self.interval.stop();
       }
@@ -46,8 +48,10 @@ export default {
       }
       if (self.tickDuration && self.top_n) {
         this.top_n = parseInt(self.top_n);
-        this.duration = parseInt(self.duration);
-        this.tickDuration = (self.duration / csv_data.length) * 1000;
+        this.duration = parseInt(
+          Object.keys(self.csvData[topic].timeGrouped).length
+        );
+        this.tickDuration = 1000;
         var data = JSON.parse(JSON.stringify(csv_data));
         self.interval = this.createBarChartRace(
           data,
@@ -93,7 +97,7 @@ export default {
 
       const margin = {
         top: 20,
-        right: 80,
+        right: 30,
         bottom: 0,
         left: 0
       };
@@ -102,18 +106,16 @@ export default {
       let barPadding = (height - (margin.bottom + margin.top)) / (top_n * 5);
       const time_index = d3.keys(data[0])[0];
       const column_names = d3.keys(data[0]).slice(1);
-
       // define a random color for each column
       const colors = {};
       const color_scale = d3.scaleOrdinal(d3.schemeSet3);
-
       column_names.forEach((name, i) => {
         colors[name] = color_scale(i);
       });
       // Parse data
       data.forEach(d => {
         // first column : YYYY-MM-DD
-        const parseTime = d3.timeParse('%Y-%m-%d');
+        const parseTime = d3.timeParse('%d/%m/%Y');
         d[time_index] = parseTime(d[time_index]);
         // convert other columns to numbers
         column_names.forEach(k => (d[k] = Number(d[k])));

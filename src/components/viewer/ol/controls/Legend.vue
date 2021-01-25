@@ -41,33 +41,31 @@
           v-if="isVisible"
           style="max-height:400px;min-height:30px;"
         >
-       
-            <template v-for="(item, index) in layers">
-              <div
-                :key="index"
-                v-if="
-                  item.getVisible() === true &&
-                    item.get('displayInLegend') === true
-                "
-                style="padding-right:10px;"
-              >
-                <p class="grey--text text--darken-2 pb-0 mb-1 mt-2 subtitle-2">
-                  {{
-                    item.get('legendDisplayName') || humanize(item.get('name'))
-                  }}
-                </p>
+          <template v-for="(item, index) in layers">
+            <div
+              :key="index"
+              v-if="
+                item.getVisible() === true &&
+                  item.get('displayInLegend') === true
+              "
+              style="padding-right:10px;"
+            >
+              <p class="grey--text text--darken-2 pb-0 mb-1 mt-2 subtitle-2">
+                {{
+                  item.get('legendDisplayName') || humanize(item.get('name'))
+                }}
+              </p>
 
-                <!-- For vector layer like network , ppf or other edit layers.  -->
-                <div v-if="item.get('legendUrl')">
-                  <img
-                    style="max-width: 100%;"
-                    :src="item.get('legendUrl')"
-                    class="white--text mt-0 pt-0"
-                  />
-                </div>
+              <!-- For vector layer like network , ppf or other edit layers.  -->
+              <div v-if="item.get('legendUrl')">
+                <img
+                  style="max-width: 100%;"
+                  :src="item.get('legendUrl')"
+                  class="white--text mt-0 pt-0"
+                />
               </div>
-            </template>
-          
+            </div>
+          </template>
         </v-expansion-panel-content>
       </v-expansion-panel>
     </v-expansion-panels>
@@ -100,8 +98,21 @@ export default {
   },
   computed: {
     ...mapGetters('map', {
-      layers: 'layers'
+      layers: 'layers',
+      topics: 'topics',
+      activeTopic: 'activeTopic'
     })
+  },
+  watch: {
+    activeTopic() {
+      const countryLayer = this.layers['countries'];
+
+      const topic = this.topics[this.activeTopic];
+      const legendUrl = `./images/${topic.name}.jpg`;
+      countryLayer.set('legendUrl', legendUrl);
+      countryLayer.set('legendDisplayName', topic.title);
+      countryLayer.changed();
+    }
   }
 };
 </script>

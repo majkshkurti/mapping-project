@@ -283,7 +283,6 @@ export default {
 
           const countryName = feature.get('name').toUpperCase();
           let topicValue = '';
-          console.log(this.currentTime);
           if (!this.currentTime) return;
           const currentTimeObject = this.csvData[topic.name].timeGrouped[
             this.currentTime

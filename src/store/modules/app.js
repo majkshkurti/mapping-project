@@ -13,7 +13,6 @@ const state = {
 // for debugging purposes.
 const mutations = {
   toggle(state) {
-    // console.log('store toggle!!')
     state.asideHidden = !state.asideHidden;
   },
 
