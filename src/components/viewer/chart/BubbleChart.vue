@@ -1,5 +1,7 @@
 <script>
 import { Bubble } from 'vue-chartjs';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+
 import { mapGetters } from 'vuex';
 import { EventBus } from '../../../EventBus';
 // import { mapGetters } from "vuex";
@@ -34,8 +36,34 @@ export default {
           padding: {
             left: 20,
             right: 30,
-            top: 20,
+            top: 40,
             bottom: 20
+          }
+        },
+        plugins: {
+          datalabels: {
+            anchor: function(context) {
+              var value = context.dataset.data[context.dataIndex].value;
+              return parseFloat(value) < 5 ? 'end' : 'center';
+            },
+            align: function(context) {
+              var value = context.dataset.data[context.dataIndex].value;
+              return parseFloat(value) < 5 ? 'end' : 'center';
+            },
+            color: function(context) {
+              var value = context.dataset.data[context.dataIndex].value;
+              return parseFloat(value) < 5
+                ? context.dataset.backgroundColor
+                : 'white';
+            },
+            font: {
+              weight: 'bold'
+            },
+            formatter: function(value) {
+              return Math.round(parseFloat(value.value));
+            },
+            offset: 2,
+            padding: 0
           }
         },
         scales: {
@@ -73,6 +101,7 @@ export default {
     };
   },
   mounted() {
+    this.addPlugin(ChartDataLabels);
     EventBus.$on('csvLoaded', this.init);
     this.init();
   },

@@ -8,6 +8,10 @@ import VueLazyLoad from 'vue-lazyload';
 import router from './router';
 import store from './store/index';
 
+import Chart from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+Chart.plugins.unregister(ChartDataLabels);
+
 require('../node_modules/ol/ol.css');
 require('./assets/scss/app.scss');
 require('material-design-icons/iconfont/material-icons.css');
@@ -20,7 +24,6 @@ Vue.prototype.$isEmbedded = appEl.hasAttribute('embedded');
 
 Vue.use(VueLazyLoad);
 Vue.use(VueCookies);
-
 
 // App Configuration
 // eslint-disable-next-line no-undef

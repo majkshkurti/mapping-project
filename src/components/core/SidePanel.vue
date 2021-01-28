@@ -18,7 +18,7 @@
             </div>
 
             <div v-if="activeTopic !== 2">
-              <div class="ma-2 font-weight-medium">Spendings (2020)</div>
+              <div class="ma-2 font-weight-medium">Spendings (% of GDP) 2020</div>
               <v-divider></v-divider>
               <bubble-chart :topicIndex="2"></bubble-chart>
               <!-- <bubble-chart
