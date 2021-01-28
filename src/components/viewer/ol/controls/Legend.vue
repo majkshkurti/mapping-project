@@ -50,11 +50,11 @@
               "
               style="padding-right:10px;"
             >
-              <p class="grey--text text--darken-2 pb-0 mb-1 mt-2 subtitle-2">
+              <!-- <p class="grey--text text--darken-2 pb-0 mb-1 mt-2 subtitle-2">
                 {{
                   item.get('legendDisplayName') || humanize(item.get('name'))
                 }}
-              </p>
+              </p> -->
 
               <!-- For vector layer like network , ppf or other edit layers.  -->
               <div v-if="item.get('legendUrl')">

@@ -2,7 +2,7 @@
   <div id="ol-map-container">
     <!-- Map Controls -->
     <map-legend color="#dc143c" />
-    <div style="position:absolute;right:30%;bottom:10px;">
+    <div style="position:absolute;right:12%;bottom:10px;">
       <time-slider></time-slider>
     </div>
     <div style="position:absolute;left:20px;top:10px;">
@@ -264,9 +264,7 @@ export default {
         } else {
           if (!feature) return;
           const topic = this.topics[this.activeTopic];
-          const fieldName = `${topic.field}_${this.currentYear}`;
-          const attr = feature.get(fieldName);
-          if (!attr) return;
+
           if (layer.get('styleObj')) {
             const { hoverTextColor, hoverBackgroundColor } = JSON.parse(
               layer.get('styleObj')
@@ -283,15 +281,25 @@ export default {
 
           const countryName = feature.get('name').toUpperCase();
           let topicValue = '';
-          if (!this.currentTime) return;
-          const currentTimeObject = this.csvData[topic.name].timeGrouped[
-            this.currentTime
-          ];
-          if (currentTimeObject[countryName]) {
-            topicValue = currentTimeObject[countryName];
+          if (topic.name === 'spendings') {
+            topicValue = this.csvData[topic.name].locationGrouped[
+              feature.get('name')
+            ][0].spendings;
+          } else {
+            if (!this.currentTime) return;
+            const currentTimeObject = this.csvData[topic.name].timeGrouped[
+              this.currentTime
+            ];
+            if (currentTimeObject[countryName]) {
+              topicValue = currentTimeObject[countryName];
+            }
           }
 
-          overlayEl.innerHTML = `${topic.title}: ${topicValue}%, ${countryName}`;
+          if (topic.name === 'spendings') {
+            overlayEl.innerHTML = `Spendings (% of GDP): ${topicValue}, ${countryName}`;
+          } else {
+            overlayEl.innerHTML = `${topic.title}: ${topicValue}%, ${countryName}`;
+          }
           this.overlay.setPosition(evt.coordinate);
         }
 

@@ -63,7 +63,7 @@ import SidePanel from '../components/core/SidePanel';
 import { mapMutations, mapGetters } from 'vuex';
 import { mapFields } from 'vuex-map-fields';
 import Papa from 'papaparse';
-import { reshapeData } from '../utils/Helpers';
+import { reshapeData, groupBy } from '../utils/Helpers';
 export default {
   name: 'wg-app',
 
@@ -103,7 +103,7 @@ export default {
       setActiveTopic: 'SET_ACTIVE_TOPIC'
     }),
     fetchCsvData() {
-      this.topics.forEach(topicObj => {
+      this.topics.forEach((topicObj, index) => {
         const topic = topicObj.name;
         if (!this.csvData[topic]) {
           Papa.parse(`./static/${topic}.csv`, {
@@ -111,21 +111,20 @@ export default {
             header: true,
             skipEmptyLines: true,
             complete: results => {
+              let minValue = 0;
+              let maxValue = 0;
+              results.data.forEach(item => {
+                const value = parseInt(item[topic]);
+                if (value <= minValue) {
+                  minValue = value;
+                }
+                if (value >= maxValue) {
+                  maxValue = value;
+                }
+              });
               if (Object.keys(results.data[0]).length === 3) {
-                let minValue = 0;
-                let maxValue = 0;
                 let timeGrouped = {};
                 const reshapedData = reshapeData(results.data);
-                results.data.forEach(item => {
-                  const value = parseInt(item[topic]);
-                  if (value <= minValue) {
-                    minValue = value;
-                  }
-                  if (value >= maxValue) {
-                    maxValue = value;
-                  }
-                });
-
                 reshapedData.forEach(data => {
                   timeGrouped[data.date] = data;
                 });
@@ -135,6 +134,20 @@ export default {
                   min: minValue,
                   max: maxValue
                 });
+              } else {
+                const reshapedData = groupBy(results.data, 'location');
+
+                this.$set(this.csvData, topic, {
+                  timeGrouped: {},
+                  locationGrouped: reshapedData,
+                  values: results.data,
+                  min: minValue,
+                  max: maxValue
+                });
+                console.log(this.csvData);
+              }
+              if (index == this.topics.length - 1) {
+                EventBus.$emit('csvLoaded');
               }
             }
           });

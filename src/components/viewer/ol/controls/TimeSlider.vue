@@ -4,8 +4,7 @@
       class="play elevation-0 mr-2"
       small
       fab
-      dark
-      color="#00000e"
+      color="white"
       @click="togglePlay"
     >
       <v-icon large>{{ isPlaying ? 'stop' : 'play_arrow' }}</v-icon>
@@ -26,9 +25,9 @@
     ></v-slider>
     <v-chip
       v-if="currentTime"
-      class="ma-2 play"
-      color="#00000e"
-      text-color="white"
+      class="ma-2 play subtitle-1"
+      color="white"
+      text-color="#00000e"
       >{{ currentTime }}
     </v-chip>
   </v-row>
@@ -57,6 +56,10 @@ export default {
       activeTopic: 'activeTopic'
     }),
     topicName() {
+      // If it's spendings... 
+      if (this.activeTopic === 2) {
+        return this.topics[0].name
+      }
       return this.topics[this.activeTopic].name;
     }
   },
@@ -87,7 +90,7 @@ export default {
         } else {
           this.currentTimeIndex = 0;
         }
-      }, 500);
+      }, 1200);
       EventBus.$emit('play');
     },
     stopPlaying() {

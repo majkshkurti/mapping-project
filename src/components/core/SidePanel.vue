@@ -4,11 +4,30 @@
       <vue-scroll>
         <v-row class="mx-1 px-0">
           <v-col class="mt-0 pt-0">
-            <div class="ma-2 font-weight-medium">Unemployment</div>
-            <v-divider></v-divider>
-            <bar-chart></bar-chart>
-            <div class="ma-2 font-weight-medium">Spendings</div>
-            <v-divider></v-divider>
+            <div v-if="activeTopic !== 0">
+              <div class="ma-2 font-weight-medium">Unemployment</div>
+              <v-divider></v-divider>
+              <bar-chart :topicIndex="0"></bar-chart>
+            </div>
+
+            <div v-if="activeTopic !== 1">
+              <div class="ma-2 font-weight-medium">GDP</div>
+              <v-divider></v-divider>
+              <bar-chart :topicIndex="1"></bar-chart>
+              <!-- <bar-chart v-if="activeTopic !== 1" :topicIndex="1"></bar-chart> -->
+            </div>
+
+            <div v-if="activeTopic !== 2">
+              <div class="ma-2 font-weight-medium">Spendings (2020)</div>
+              <v-divider></v-divider>
+              <bubble-chart :topicIndex="2"></bubble-chart>
+              <!-- <bubble-chart
+                v-if="activeTopic !== 2"
+                :topicIndex="2"
+              ></bubble-chart> -->
+            </div>
+
+            <!-- BUBBLE CHART HERE -->
           </v-col>
         </v-row>
       </vue-scroll>
@@ -23,7 +42,8 @@ import { mapFields } from 'vuex-map-fields';
 import UrlUtil from '../../utils/Url';
 import { SharedMethods } from '../../mixins/SharedMethods';
 import { EventBus } from '../../EventBus';
-import BarChart from './BarChart';
+import BarChart from '../viewer/chart/BarChart';
+import BubbleChart from '../viewer/chart/BubbleChart'
 
 export default {
   mixins: [SharedMethods],
@@ -31,7 +51,8 @@ export default {
     return {};
   },
   components: {
-    'bar-chart': BarChart 
+    'bar-chart': BarChart,
+    'bubble-chart': BubbleChart
   },
   computed: {
     ...mapGetters('map', {

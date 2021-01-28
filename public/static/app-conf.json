@@ -45,7 +45,7 @@
       {
         "type": "VECTOR",
         "name": "countries",
-        "url": "./static/countries.geojson",
+        "url": "./static/only_top_10.geojson",
         "queryable": true,
         "displayInLegend": true,
         "legendUrl": "./images/gdp.jpg",

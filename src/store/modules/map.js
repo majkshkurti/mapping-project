@@ -16,7 +16,7 @@ const state = {
       title: 'GDP'
     },
     {
-      name: 'spending',
+      name: 'spendings',
       field: 'SPEND',
       title: 'Spendings'
     }
@@ -37,30 +37,29 @@ const state = {
   timeInterval: null,
   colors: {
     gdp: {
-      '-Infinity>-30': 'rgb(111, 30, 72)',
-      '-29>-21': 'rgb(139, 62, 99)',
-      '-20>-15': 'rgb(165, 95, 127)',
-      '-14>-10': 'rgb(193, 129, 156)',
-      '-9>-6': 'rgb(209, 162, 179)',
-      '-5>-3': 'rgb(228, 194, 202)',
-      '-2>0': 'rgb(243, 229, 222)',
-      '1>2': 'rgb(230, 234, 215)',
-      '3>5': 'rgb(195, 209, 180)',
-      '6>9': 'rgb(160, 183, 145)',
-      '10>14': 'rgb(124, 156, 110)',
-      '15>20': 'rgb(90, 126, 81)',
-      '21>29': 'rgb(59, 99, 50)',
-      '30>Infinity': 'rgb(26, 70, 24)'
+      '-Infinity>-30.001': 'rgb(101, 0, 53)',
+      '-30>-25.001': 'rgb(136, 48, 87)',
+      '-25>-20.001': 'rgb(171, 85, 125)',
+      '-20>-15.001': 'rgb(196, 120, 155)',
+      '-15>-10.001': 'rgb(219, 157, 184)',
+      '-10>-5.001': 'rgb(234, 193, 206)',
+      '-5>-0.001': 'rgb(245, 228, 225)',
+      '0>4.999': 'rgb(230, 234, 213)',
+      '5>9.9999': 'rgb(192, 211, 171)',
+      '10>14.999': 'rgb(153, 184, 132)',
+      '15>19.999': 'rgb(115, 154, 97)',
+      '20>24.999': 'rgb(78, 123, 64)',
+      '25>29.999': 'rgb(42, 90, 32)',
+      '30>Infinity': 'rgb(0, 57, 1)'
     },
     unemployment: {
-      '0>1': 'rgb(254, 235, 226)',
-      '2>3': 'rgb(253, 208, 202)',
-      '4>5': 'rgb(251, 181, 187)',
-      '6>7': 'rgb(250, 152, 178)',
-      '8>9': 'rgb(248, 113, 164)',
-      '10>11': 'rgb(248, 113, 164)',
-      '12>13': 'rgb(175, 19, 133)',
-      '14>Infinity': 'rgb(122, 1, 119)'
+      '0>1.999': 'rgb(32, 102, 172)',
+      '2>3.999': 'rgb(103, 169, 207)',
+      '4>5.999': 'rgb(210, 228, 240)',
+      '6>7.999': 'rgb(248, 246, 232)',
+      '8>9.999': 'rgb(252, 220, 197)',
+      '10>11.999': 'rgb(239, 138, 98)',
+      '12>Infinity': 'rgb(239, 138, 98)'
     },
     spendings: {}
   }
@@ -76,7 +75,7 @@ const getters = {
   messages: state => state.messages,
   snackbar: state => state.messages.snackbar,
   currentTime: state => {
-    const activeTopic = state.activeTopic;
+    const activeTopic = state.activeTopic === 2 ? 0 : state.activeTopic;
     const topicName = state.topics[activeTopic].name;
     const topic = state.csvData[topicName];
     if (!topic) return '';

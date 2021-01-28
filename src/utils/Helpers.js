@@ -87,6 +87,7 @@ export function debounce(fn, delay) {
 
 export function reshapeData(data) {
   // groupby dates (first column)
+
   let column_names = new Set(data.map(x => x[Object.keys(x)[1]]));
   const grouped_by_date = groupBy(data, 'date');
   return Object.keys(grouped_by_date).map(k => {
