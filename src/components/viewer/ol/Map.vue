@@ -425,6 +425,7 @@ export default {
       const map = me.map;
       me.mapClickListenerKey = map.on('click', evt => {
         me.closePopup();
+        if (this.activeTopic === 2) return;
         let selectedFeatures = me.map.getFeaturesAtPixel(evt.pixel, {
           hitTolerance: 4,
           layerFilter: layerCandidate => {

@@ -70,14 +70,14 @@ export default {
           yAxes: [
             {
               ticks: {
-                display: false //this will remove only the label
+                display: true //this will remove only the label
               }
             }
           ],
           xAxes: [
             {
               ticks: {
-                display: false //this will remove only the label
+                display: true //this will remove only the label
               },
               scaleLabel: {
                 display: true
