@@ -9,6 +9,7 @@
               <v-divider></v-divider>
               <bar-chart :topicIndex="0"></bar-chart>
             </div>
+            
 
             <div v-if="activeTopic !== 1">
               <div class="ma-2 font-weight-medium">GDP</div>

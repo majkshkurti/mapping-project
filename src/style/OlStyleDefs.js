@@ -88,7 +88,7 @@ export function mainStyle(feature) {
           })
         }),
         geometry: function(feature) {
-          console.log(feature)
+          console.log(feature);
           const lon = feature.get('lon');
           const lat = feature.get('lat');
           // return the coordinates of the center of polygon
@@ -108,14 +108,14 @@ export function getFeatureHighlightStyle() {
   return [
     new OlStyle({
       fill: new OlFill({
-        color: [0, 0, 0, 0]
+        color: 'rgba(255, 0, 0, 0.7)'
       }),
       stroke: new OlStroke({
-        color: '#FF0000',
-        width: 10
+        color: 'rgba(255, 0, 0, 0.7)',
+        width: 4
       }),
       image: new OlCircle({
-        radius: 10,
+        radius: 4,
         fill: new OlFill({
           color: '#FF0000'
         })

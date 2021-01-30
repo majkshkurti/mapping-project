@@ -29,6 +29,14 @@ const state = {
       timeout: 2000
     }
   },
+  popup: {
+    title: 'Info',
+    isVisible: false,
+    popupOverlay: null,
+    highlightLayer: null,
+    activeFeature: null,
+    activeLayer: null
+  },
   layers: {}, // Only for operational layers
   colorMapEntities: {},
   csvData: {},
@@ -89,6 +97,7 @@ const getters = {
   csvData: state => state.csvData,
   currentTimeIndex: state => state.currentTimeIndex,
   colors: state => state.colors,
+  popup: state => state.popup,
   getField
 };
 

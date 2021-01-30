@@ -23,6 +23,13 @@
         class="logo headline font-weight-bold black--text mr-3"
         >COVID19 IMPACT</v-toolbar-title
       >
+      <v-tooltip right>
+        <template v-slot:activator="{ on }">
+          <v-btn @click="showDialog = true" v-on="on" small depressed fab color="#00000e" class="ml-0"
+            ><v-icon medium>fas fa-question</v-icon></v-btn
+          > </template
+        ><span>About</span>
+      </v-tooltip>
       <v-spacer></v-spacer>
       <div v-for="(item, index) in topics" :key="index">
         <v-btn
@@ -52,6 +59,7 @@
         <app-viewer />
       </v-container>
     </v-content>
+    <app-about :visible="showDialog" @close="showDialog = false" />
   </v-app>
 </template>
 
@@ -59,6 +67,7 @@
 import { EventBus } from '../EventBus.js';
 import Viewer from '../components/viewer/viewer';
 import SidePanel from '../components/core/SidePanel';
+import About from '../components/core/About';
 //Store imports
 import { mapMutations, mapGetters } from 'vuex';
 import { mapFields } from 'vuex-map-fields';
@@ -82,11 +91,13 @@ export default {
   },
   components: {
     'app-viewer': Viewer,
-    'side-panel': SidePanel
+    'side-panel': SidePanel,
+    'app-about': About
   },
   data() {
     return {
-      drawer: true
+      drawer: true,
+      showDialog: false
     };
   },
   methods: {

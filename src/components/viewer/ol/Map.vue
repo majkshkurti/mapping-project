@@ -18,6 +18,28 @@
     ></progress-loader>
     <!-- Show snackbar -->
     <snackbar style="margin-top:60px;"></snackbar>
+    <!-- Popup overlay  -->
+    <overlay-popup
+      :color="'#00000e'"
+      :title="popup.title"
+      v-show="popup.isVisible"
+      ref="popup"
+    >
+      <template v-slot:close>
+        <v-btn icon @click="closePopup">
+          <v-icon>close</v-icon>
+        </v-btn>
+      </template>
+      <template v-slot:body>
+        <div style="max-height:800px;overflow:hidden;">
+          <vue-scroll>
+            <div>
+              <line-chart></line-chart>
+            </div>
+          </vue-scroll>
+        </div>
+      </template>
+    </overlay-popup>
   </div>
 </template>
 
@@ -28,6 +50,8 @@ import Vue from 'vue';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import Overlay from 'ol/Overlay';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
 // import the app-wide EventBus
 import { EventBus } from '../../../EventBus';
 
@@ -44,6 +68,8 @@ import ZoomControl from './controls/ZoomControl';
 import FullScreen from './controls/FullScreen';
 import Legend from './controls/Legend';
 import TimeSlider from './controls/TimeSlider';
+import OverlayPopup from './controls/Overlay';
+import LineChart from '../chart/LineChart';
 
 // Interactions
 import DoubleClickZoom from 'ol/interaction/DoubleClickZoom';
@@ -62,7 +88,10 @@ import Snackbar from '../../core/Snackbar';
 import proj4 from 'proj4';
 import { register } from 'ol/proj/proj4';
 
-import { mainStyle } from '../../../style/OlStyleDefs';
+import {
+  mainStyle,
+  getFeatureHighlightStyle
+} from '../../../style/OlStyleDefs';
 
 export default {
   components: {
@@ -71,6 +100,8 @@ export default {
     'full-screen': FullScreen,
     'progress-loader': ProgressLoader,
     'time-slider': TimeSlider,
+    'overlay-popup': OverlayPopup,
+    'line-chart': LineChart,
     Snackbar
   },
   name: 'app-ol-map',
@@ -96,7 +127,8 @@ export default {
         }
       },
       noMapReset: false,
-      layerVisibilityState: {}
+      layerVisibilityState: {},
+      isPopupVisible: false
     };
   },
   mixins: [SharedMethods],
@@ -116,6 +148,10 @@ export default {
       me.setOlButtonColor();
       // Pointer Move
       me.setupMapPointerMove();
+      // Setup Map click
+      me.setupMapClick();
+      // Create popup overlay for get info
+      me.createPopupOverlay();
     }, 200);
   },
   created() {
@@ -153,6 +189,7 @@ export default {
     me.setMap(me.map);
     // Create layers from config and add them to map
     me.createLayers();
+    me.createGetInfoLayer();
   },
   methods: {
     /**
@@ -170,6 +207,23 @@ export default {
           layer.setStyle(mainStyle);
         }
       });
+    },
+    /**
+     * Creates a layer to visualize selected GetInfo features.
+     */
+    createGetInfoLayer() {
+      // For Vector selection
+      const source = new VectorSource({
+        wrapX: false
+      });
+      const vector = new VectorLayer({
+        name: 'Get Info Layer',
+        zIndex: 3000,
+        source: source,
+        style: getFeatureHighlightStyle
+      });
+      this.popup.highlightLayer = vector;
+      this.map.addLayer(vector);
     },
 
     /**
@@ -312,6 +366,81 @@ export default {
       });
     },
 
+    /**
+     * Show popup for the get info module.
+     */
+    createPopupOverlay() {
+      const me = this;
+      me.popup.popupOverlay = new Overlay({
+        element: me.$refs.popup.$el,
+        autoPan: false,
+        autoPanMargin: 40,
+        autoPanAnimation: {
+          duration: 250
+        }
+      });
+      me.map.addOverlay(me.popup.popupOverlay);
+    },
+    /**
+     * Closes the popup if user click X button.
+     */
+    closePopup() {
+      const me = this;
+      if (me.popup.popupOverlay) {
+        me.popup.popupOverlay.setPosition(undefined);
+        me.popup.isVisible = false;
+      }
+
+      // Clear highligh feature (Don't clear if a corporate network entity is selected)
+      if (me.popup.highlightLayer) {
+        this.popup.highlightLayer.getSource().clear();
+      }
+
+      me.popup.activeFeature = null;
+      me.popup.activeLayer = null;
+    },
+    showPopup(coordinate) {
+      // Clear highligh feature (Don't clear if a corporate network entity is selected)
+      let position = this.popup.activeFeature.getGeometry().getCoordinates();
+      // Correct popup position (used feature coordinates insteaad of mouse)
+      let closestPoint;
+      // Closest point doesn't work with vector tile layers.
+      if (position) {
+        closestPoint = this.popup.activeFeature
+          .getGeometry()
+          .getClosestPoint(coordinate);
+      } else {
+        closestPoint = coordinate;
+      }
+      this.map.getView().animate({
+        center: closestPoint,
+        duration: 400
+      });
+      this.popup.popupOverlay.setPosition(closestPoint);
+      this.popup.isVisible = true;
+      this.popup.title = 'Info';
+    },
+    setupMapClick() {
+      const me = this;
+      const map = me.map;
+      me.mapClickListenerKey = map.on('click', evt => {
+        me.closePopup();
+        let selectedFeatures = me.map.getFeaturesAtPixel(evt.pixel, {
+          hitTolerance: 4,
+          layerFilter: layerCandidate => {
+            return layerCandidate.get('name') === 'countries';
+          }
+        });
+        if (selectedFeatures.length > 0) {
+          me.popup.activeFeature = selectedFeatures[0];
+          me.popup.highlightLayer
+            .getSource()
+            .addFeature(me.popup.activeFeature.clone());
+          this.showPopup(evt.coordinate);
+        }
+      });
+    },
+
     ...mapMutations('map', {
       setMap: 'SET_MAP',
       setLayer: 'SET_LAYER',
@@ -337,6 +466,9 @@ export default {
       } else {
         this.dblClickZoomInteraction.setActive(true);
       }
+    },
+    activeTopic() {
+      this.closePopup();
     }
   }
 };

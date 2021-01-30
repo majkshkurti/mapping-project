@@ -16,7 +16,6 @@ export default {
     }),
     topic() {
       const topicName = this.topics[this.topicIndex].name;
-
       return this.csvData[topicName];
     }
   },
