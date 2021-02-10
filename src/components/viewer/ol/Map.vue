@@ -1,7 +1,7 @@
 <template>
   <div id="ol-map-container">
     <!-- Map Controls -->
-    <map-legend v-show="activeTopic !== 2" color="#dc143c" />
+    <map-legend color="#dc143c" />
     <div style="position:absolute;right:12%;bottom:10px;">
       <time-slider></time-slider>
     </div>
